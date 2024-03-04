@@ -1,0 +1,50 @@
+[
+  {
+    "username": "admin",
+    "email": "kevyn.fyleyssant@gmail.com",
+    "password": "password",
+    "isAdmin": true
+  },
+  {
+    "username": "Jake Peralta",
+    "email": "jake.peralta@cool-cool.cool",
+    "password": "password",
+    "isAdmin": false
+  },
+  {
+    "username": "Amy Santiago",
+    "email": "amy.santiago@outlook.com",
+    "password": "password",
+    "isAdmin": false
+  },
+  {
+    "username": "Ray Holt",
+    "email": "ray.holt@rip.com",
+    "password": "password",
+    "isAdmin": true
+  },
+  {
+    "username": "Terry Jeffords",
+    "email": "terry.jeffords@yogurt.com",
+    "password": "password",
+    "isAdmin": false
+  },
+  {
+    "username": "Rosa Diaz",
+    "email": "rosa.diaz@nine-nine.com",
+    "password": "password",
+    "isAdmin": false
+  },
+  {
+    "username": "Adrian Pimento",
+    "email": "adrian.pimento@crazytown.com",
+    "password": "password",
+    "isAdmin": false
+  },
+  {
+    "username": "Gina Linetti",
+    "email": "gina.linetti@top-model.com",
+    "password": "password",
+    "isAdmin": false
+  }
+]
