@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gofiber/fiber/v2"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	trait "go-api-test.kayn.ooo/src/Entity/Trait"
+	utils "go-api-test.kayn.ooo/src/Utils"
 	"os"
 	"regexp"
 	"strconv"
@@ -17,12 +19,13 @@ import (
 )
 
 var (
-	DB  *bun.DB
-	Ctx = context.Background()
+	DB                *bun.DB
+	Ctx               = context.Background()
+	GenericRepository = GenericRepositoryStruct{}
 )
 
 type GenericRepositoryInterface interface {
-	FindOneById(entity interface{}, id int) error
+	FindOneById(entity interface{}, id uint) error
 	FindOneBy(entity interface{}, params map[string]interface{}) error
 	FindAll(entities interface{}) error
 	FindAllBy(entities interface{}, params map[string]interface{}) error
@@ -31,11 +34,11 @@ type GenericRepositoryInterface interface {
 	Update(entity interface{}) (sql.Result, error)
 }
 
-type GenericRepository struct {
+type GenericRepositoryStruct struct {
 	GenericRepositoryInterface
 }
 
-func (r *GenericRepository) Init(entities []interface{}) {
+func (r *GenericRepositoryStruct) Init(entities []interface{}) {
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		fmt.Println("DB_URL environment variable is required")
@@ -69,11 +72,11 @@ func (r *GenericRepository) Init(entities []interface{}) {
 	}
 }
 
-func (r *GenericRepository) FindOneById(entity interface{}, id int) error {
+func (r *GenericRepositoryStruct) FindOneById(entity interface{}, id uint) error {
 	return DB.NewSelect().Model(entity).Where("id = ?", id).Scan(Ctx)
 }
 
-func (r *GenericRepository) applyParams(model *bun.SelectQuery, params map[string]interface{}) *bun.SelectQuery {
+func (r *GenericRepositoryStruct) applyParams(model *bun.SelectQuery, params map[string]interface{}) *bun.SelectQuery {
 	for key, value := range params {
 		if key == "limit" || key == "offset" {
 			limit, boolErr := value.(string)
@@ -103,7 +106,7 @@ func (r *GenericRepository) applyParams(model *bun.SelectQuery, params map[strin
 	return model
 }
 
-func (r *GenericRepository) FindOneBy(entity interface{}, params map[string]interface{}) error {
+func (r *GenericRepositoryStruct) FindOneBy(entity interface{}, params map[string]interface{}) error {
 	model := DB.NewSelect().Model(entity)
 	params["limit"] = 1
 	params["offset"] = 0
@@ -111,28 +114,46 @@ func (r *GenericRepository) FindOneBy(entity interface{}, params map[string]inte
 	return model.Scan(Ctx)
 }
 
-func (r *GenericRepository) FindAll(entities interface{}) error {
-	return DB.NewSelect().Model(entities).Scan(Ctx)
+func (r *GenericRepositoryStruct) FindAll(entities interface{}) error {
+	return DB.NewSelect().Model(entities).OrderExpr("id ASC").Scan(Ctx)
 }
 
-func (r *GenericRepository) FindAllBy(entities interface{}, params map[string]interface{}) error {
+func (r *GenericRepositoryStruct) FindAllBy(entities interface{}, params map[string]interface{}) error {
 	model := DB.NewSelect().Model(entities)
 	model = r.applyParams(model, params)
-	return model.Scan(Ctx)
+	return model.OrderExpr("id ASC").Scan(Ctx)
 }
 
-func (r *GenericRepository) CountAll(entity interface{}) (int, error) {
+func (r *GenericRepositoryStruct) CountAll(entity interface{}) (int, error) {
 	return DB.NewSelect().Model(entity).Count(Ctx)
 }
 
-func (r *GenericRepository) Create(entity interface{}) (sql.Result, error) {
+func (r *GenericRepositoryStruct) Create(entity interface{}) (sql.Result, error) {
 	return DB.NewInsert().Model(entity).Exec(Ctx)
 }
 
-func (r *GenericRepository) Update(entity interface{}) (sql.Result, error) {
+func (r *GenericRepositoryStruct) Update(entity interface{}) (sql.Result, error) {
 	if timestampableEntity, ok := entity.(trait.Timestampable); ok {
 		timestampableEntity.UpdatedAt = time.Now()
 	}
+	model := DB.NewUpdate().Model(entity)
+	if identifiableEntity, ok := entity.(trait.IdentifierInterface); ok {
+		model.Where("id = ?", identifiableEntity.GetId())
+	}
 
-	return DB.NewUpdate().Model(entity).Exec(Ctx)
+	return model.Exec(Ctx)
+}
+
+func FindEntityByRouteParam(c *fiber.Ctx, param string, entity interface{}) error {
+	id, err := strconv.ParseUint(c.Params(param), 10, 0)
+	if err != nil {
+		return utils.HTTP404Error(c)
+	}
+
+	err = GenericRepository.FindOneById(entity, uint(id))
+	if entity == nil || err != nil {
+		return utils.HTTP404Error(c)
+	}
+
+	return nil
 }

@@ -11,12 +11,11 @@ import (
 )
 
 func main() {
-	rep := repository.GenericRepository{}
+	rep := repository.GenericRepository
 	rep.Init([]interface{}{
 		&entity.User{},
+		&entity.Todolist{},
 	})
-
-	_ = repository.DB.ResetModel(repository.Ctx, &entity.User{})
 
 	if os.Getenv("ENV") == "dev" {
 		count, err := repository.UserRepository.CountAll(&entity.User{})
@@ -28,5 +27,6 @@ func main() {
 
 	router.Init([]router.GenericRouterInterface{
 		&router.UserRouter{},
+		&router.TodolistRouter{},
 	})
 }

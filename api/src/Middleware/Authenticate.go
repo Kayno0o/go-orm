@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	utils "go-api-test.kayn.ooo/src/Utils"
 	"os"
 	"time"
 
@@ -29,26 +30,25 @@ func Authenticate(c *fiber.Ctx) error {
 	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithAudience(os.Getenv("JWT_ISSUER")), jwt.WithIssuer(os.Getenv("JWT_ISSUER")))
 
 	if err != nil || !token.Valid {
-		_ = c.Status(401).SendString("Invalid token")
-		return nil
+		c.ClearCookie("token")
+		return c.Next()
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
 
 	if claims["exp"] == nil || claims["iat"] == nil {
-		_ = c.Status(401).SendString("Invalid token")
-		return nil
+		return utils.HTTP401Error(c, "Invalid token")
 	}
 
 	if int64(claims["exp"].(float64)) < time.Now().Unix() || int64(claims["iat"].(float64)) > time.Now().Unix() {
-		_ = c.Status(401).SendString("Invalid token")
-		return nil
+		c.ClearCookie("token")
+		return c.Next()
 	}
 
 	id := claims["id"].(float64)
 
 	user := &entity.User{}
-	_ = repository.UserRepository.FindOneById(user, int(id))
+	_ = repository.UserRepository.FindOneById(user, uint(id))
 	c.Locals("user", user)
 
 	return c.Next()

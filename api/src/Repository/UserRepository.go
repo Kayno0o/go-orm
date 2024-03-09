@@ -5,5 +5,5 @@ var (
 )
 
 type UserRepositoryStruct struct {
-	GenericRepository
+	GenericRepositoryStruct
 }

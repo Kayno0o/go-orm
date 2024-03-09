@@ -73,7 +73,7 @@ func GenerateUsersFromJson() []entity.User {
 func GenerateUsers(nb int, isAdmin bool) []entity.User {
 	password := security.HashPassword("password")
 
-	users := []entity.User{}
+	var users []entity.User
 	firstNames := GetFirstNames()
 	for i := 0; i < nb; i++ {
 		firstName := RandomFirstName(firstNames)

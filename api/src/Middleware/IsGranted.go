@@ -16,7 +16,7 @@ func IsGranted(roles []string) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		localUser := c.Locals("user")
 		if localUser == nil {
-			return c.Status(401).SendString("Unauthorized - isGranted")
+			return utils.HTTP401Error(c)
 		}
 
 		user := localUser.(*entity.User)
@@ -32,6 +32,6 @@ func IsGranted(roles []string) func(*fiber.Ctx) error {
 			}
 		}
 
-		return c.Status(403).SendString("Forbidden")
+		return utils.HTTP403Error(c)
 	}
 }

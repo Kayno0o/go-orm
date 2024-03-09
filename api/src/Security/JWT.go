@@ -26,7 +26,7 @@ func GenerateToken(user *entity.User) (*JWT, error) {
 	secretKey := []byte(os.Getenv("SECRET_KEY"))
 
 	// Create a new JWT token with the user ID and expiration time
-	exp := time.Now().Add(time.Hour)
+	exp := time.Now().Add(24 * time.Hour)
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = user.ID
