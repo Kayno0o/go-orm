@@ -42,7 +42,6 @@ func GetUserId(c *fiber.Ctx) *uint {
 
 func IsOwner(c *fiber.Ctx, id uint) bool {
 	uid := GetUserId(c)
-	fmt.Println(*uid, id)
 	if uid == nil || id != *uid {
 		return false
 	}
