@@ -1,15 +1,15 @@
 package trait
 
 type IdentifierInterface interface {
-	GetId() int64
+	GetId() uint
 }
 
 type Identifier struct {
 	IdentifierInterface `bun:"-" json:"-"`
 
-	ID int64 `bun:",pk,autoincrement" json:"id"`
+	ID uint `bun:",pk,autoincrement" json:"id"`
 }
 
-func (i *Identifier) GetId() int64 {
+func (i *Identifier) GetId() uint {
 	return i.ID
 }

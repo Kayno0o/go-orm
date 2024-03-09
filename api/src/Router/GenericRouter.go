@@ -2,11 +2,13 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
+	pool "github.com/valyala/bytebufferpool"
+	"go-api-test.kayn.ooo/src/Entity/trait"
 	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	trait "go-api-test.kayn.ooo/src/Entity/Trait"
 	middleware "go-api-test.kayn.ooo/src/Middleware"
 	repository "go-api-test.kayn.ooo/src/Repository"
 	utils "go-api-test.kayn.ooo/src/Utils"
@@ -17,17 +19,27 @@ type GenericRouterInterface interface {
 }
 
 func Init(routers []GenericRouterInterface) {
-	fiberApp := fiber.New(fiber.Config{
+	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
 	})
 
-	api := fiberApp.Group("/api", middleware.Authenticate)
+	fmt.Println("Registering routes...")
+	api := app.Group("/", middleware.Authenticate)
 	for i := range routers {
 		routers[i].RegisterRoutes(api)
 	}
 
-	log.Fatal(fiberApp.Listen(":3000"))
+	routes := app.Stack()
+	for _, route := range routes {
+		for _, r := range route {
+			if r.Method != "OPTIONS" && r.Method != "CONNECT" && r.Method != "PATCH" && r.Method != "TRACE" {
+				println(r.Method, r.Path)
+			}
+		}
+	}
+
+	log.Fatal(app.Listen(":3000"))
 }
 
 func queryToParams(c *fiber.Ctx) map[string]interface{} {
@@ -44,7 +56,7 @@ func FindOne(rep repository.GenericRepositoryInterface, entity trait.IdentifierI
 		if err != nil {
 			return c.SendStatus(400)
 		}
-		_ = rep.FindOneById(entity, id)
+		_ = rep.FindOneById(entity, uint(id))
 		if entity.GetId() == 0 {
 			return c.SendStatus(404)
 		}
@@ -69,7 +81,7 @@ func FindAll(rep repository.GenericRepositoryInterface, entities interface{}, co
 	}
 }
 
-func CountAll(rep repository.GenericRepositoryInterface, entity trait.IdentifierInterface) func(c *fiber.Ctx) error {
+func CountAll(rep repository.GenericRepositoryInterface, entity interface{}) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		count, err := rep.CountAll(entity)
 		if err != nil {
@@ -77,4 +89,9 @@ func CountAll(rep repository.GenericRepositoryInterface, entity trait.Identifier
 		}
 		return c.JSON(count)
 	}
+}
+
+func ServeHTML(c *fiber.Ctx, bufferPool *pool.ByteBuffer) error {
+	c.Set(fiber.HeaderContentType, fiber.MIMETextHTML)
+	return c.SendString(bufferPool.String())
 }

@@ -1,0 +1,55 @@
+extends ../layouts/default.pug
+block goFunctions
+  :go:func Index(todolists []entity.Todolist, data routerstruct.Route)
+  :go:import
+      routerstruct "go-api-test.kayn.ooo/src/Router/Struct"
+      entity "go-api-test.kayn.ooo/src/Entity"
+
+mixin for(golang)
+  pre Precompile jade templates to #{golang} code.
+    div test
+
+block title
+  title= data.Title
+
+block content
+  div.container
+    h1.flex.gap-4.items-center
+      if data.User != nil
+        span WELCOME #{data.User.Username}
+        span.text-amber-600.inline-block.i-ph-crown
+      else
+        span Welcome random
+        span.inline-block.i-ph-trash
+
+  div.container mixin for golang
+    +for('Go')
+
+  p Param ID :
+    if data.Params["id"] == ""
+      span.text-blue-500  empty param
+    else
+      span.text-emerald-500  #{data.Params["id"]}
+
+  if data.User == nil
+    form#login-form(action="/api/user/login", method="POST")
+      label(for="email") Email:
+      input(type="text", id="email", name="email", required)
+
+      label(for="password") Password:
+      input(type="password", id="password", name="password", required)
+
+      button(type="submit") Login
+  else
+    div#todolist-list.flex.gap-12.items-center
+      each todolist in todolists
+        label.flex.items-center.gap-4= todolist.Content
+          if todolist.Checked
+            input.todolist-item(type="checkbox" checked=true value=todolist.ID)
+          else
+            input.todolist-item(type="checkbox" value=todolist.ID)
+
+    form#todo-form.flex.items-center.gap-4
+      label(for="content") new todo:
+      input(type="text", id="todolist", name="content", required)
+      button(type="submit") add

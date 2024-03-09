@@ -9,7 +9,7 @@ import (
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
-	trait "go-api-test.kayn.ooo/src/Entity/Trait"
+	"go-api-test.kayn.ooo/src/Entity/trait"
 	"os"
 	"regexp"
 	"strconv"
@@ -22,7 +22,7 @@ var (
 )
 
 type GenericRepositoryInterface interface {
-	FindOneById(entity interface{}, id int) error
+	FindOneById(entity interface{}, id uint) error
 	FindOneBy(entity interface{}, params map[string]interface{}) error
 	FindAll(entities interface{}) error
 	FindAllBy(entities interface{}, params map[string]interface{}) error
@@ -33,6 +33,12 @@ type GenericRepositoryInterface interface {
 
 type GenericRepository struct {
 	GenericRepositoryInterface
+}
+
+type CustomLogger struct{}
+
+func (l *CustomLogger) Log(args ...interface{}) {
+	fmt.Println(args...) // Output the log message
 }
 
 func (r *GenericRepository) Init(entities []interface{}) {
@@ -69,7 +75,7 @@ func (r *GenericRepository) Init(entities []interface{}) {
 	}
 }
 
-func (r *GenericRepository) FindOneById(entity interface{}, id int) error {
+func (r *GenericRepository) FindOneById(entity interface{}, id uint) error {
 	return DB.NewSelect().Model(entity).Where("id = ?", id).Scan(Ctx)
 }
 
@@ -112,13 +118,13 @@ func (r *GenericRepository) FindOneBy(entity interface{}, params map[string]inte
 }
 
 func (r *GenericRepository) FindAll(entities interface{}) error {
-	return DB.NewSelect().Model(entities).Scan(Ctx)
+	return DB.NewSelect().Model(entities).OrderExpr("id ASC").Scan(Ctx)
 }
 
 func (r *GenericRepository) FindAllBy(entities interface{}, params map[string]interface{}) error {
 	model := DB.NewSelect().Model(entities)
 	model = r.applyParams(model, params)
-	return model.Scan(Ctx)
+	return model.OrderExpr("id ASC").Scan(Ctx)
 }
 
 func (r *GenericRepository) CountAll(entity interface{}) (int, error) {
@@ -133,6 +139,10 @@ func (r *GenericRepository) Update(entity interface{}) (sql.Result, error) {
 	if timestampableEntity, ok := entity.(trait.Timestampable); ok {
 		timestampableEntity.UpdatedAt = time.Now()
 	}
+	model := DB.NewUpdate().Model(entity)
+	if identifiableEntity, ok := entity.(trait.IdentifierInterface); ok {
+		model.Where("id = ?", identifiableEntity.GetId())
+	}
 
-	return DB.NewUpdate().Model(entity).Exec(Ctx)
+	return model.Exec(Ctx)
 }

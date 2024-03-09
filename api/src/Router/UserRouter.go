@@ -18,7 +18,9 @@ type UserRouter struct {
 }
 
 func (ur *UserRouter) RegisterRoutes(r fiber.Router) {
-	r.Post(
+	api := r.Group("/api")
+
+	api.Post(
 		"/user/login",
 		ur.Login,
 	).Post(
@@ -27,21 +29,21 @@ func (ur *UserRouter) RegisterRoutes(r fiber.Router) {
 	)
 
 	// ADMIN
-	admin := group.IsGranted(r, []string{"ROLE_ADMIN"})
+	admin := group.IsGranted(api, []string{"ROLE_ADMIN"})
 	admin.Get(
 		"/users/fixture/:amount",
 		ur.Fixture,
 	)
 
 	// USER
-	user := group.IsGranted(r, []string{"ROLE_USER"})
+	user := group.IsGranted(api, []string{"ROLE_USER"})
 	user.Get(
 		"/user/me",
 		ur.Me,
 	)
 
 	// PUBLIC
-	r.Get(
+	api.Get(
 		"/users",
 		FindAll(
 			repository.UserRepository,

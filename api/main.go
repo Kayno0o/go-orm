@@ -14,6 +14,7 @@ func main() {
 	rep := repository.GenericRepository{}
 	rep.Init([]interface{}{
 		&entity.User{},
+		&entity.Todolist{},
 	})
 
 	_ = repository.DB.ResetModel(repository.Ctx, &entity.User{})
@@ -28,5 +29,7 @@ func main() {
 
 	router.Init([]router.GenericRouterInterface{
 		&router.UserRouter{},
+		&router.ClientRouter{},
+		&router.TodolistRouter{},
 	})
 }

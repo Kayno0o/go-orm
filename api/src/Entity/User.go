@@ -2,7 +2,7 @@ package entity
 
 import (
 	"github.com/uptrace/bun"
-	trait "go-api-test.kayn.ooo/src/Entity/Trait"
+	"go-api-test.kayn.ooo/src/Entity/trait"
 )
 
 type User struct {
@@ -13,10 +13,11 @@ type User struct {
 	Username string   `bun:",notnull" json:"username"`
 	Email    string   `bun:",notnull,unique" json:"email"`
 	Password string   `bun:",notnull" json:"password"`
-	Roles    []string `bun:",jsonb" json:"roles"`
+	Roles    []string `bun:",array" json:"roles"`
 }
 
 type UserContext struct {
+	Id       uint   `json:"id"`
 	Username string `json:"username"`
 }
 
