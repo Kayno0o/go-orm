@@ -6,13 +6,24 @@ services:
       dockerfile: ../.docker/go/Dockerfile
     container_name: goorm_api
     ports:
-      - 13000:3000
+      - "13000:3000"
     depends_on:
       - db
     volumes:
       - ./api:/app
     env_file:
       - .docker/go/.env
+    restart: always
+
+  db:
+    build:
+      context: .docker/postgres
+      dockerfile: Dockerfile
+    container_name: goorm_db
+    ports:
+      - "15432:5432"
+    env_file:
+      - .docker/postgres/.env
     restart: always
 
   adminer:
@@ -22,18 +33,9 @@ services:
     depends_on:
       - db
     ports:
-      - 18080:8080
+      - "18080:8080"
+#    volumes:
+#      - ./.docker/adminer/plugins:/var/www/html/plugins-enabled
     environment:
       # @see https://github.com/vrana/adminer/tree/master/plugins
-      - ADMINER_PLUGINS=enum-types edit-textarea enum-option json-column
-
-  db:
-    build:
-      context: .docker/postgres
-      dockerfile: Dockerfile
-    container_name: goorm_db
-    ports:
-      - 15432:5432
-    env_file:
-      - .docker/postgres/.env
-    restart: always
+      - ADMINER_PLUGINS=enum-types edit-textarea enum-option json-column login-ip

@@ -3,7 +3,6 @@ package fixture
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -29,7 +28,7 @@ func RandomFirstName(firstNames []string) string {
 func GenerateUsersFromJson() []entity.User {
 	var users []entity.User
 
-	data, err := ioutil.ReadFile("./src/Fixture/users.json")
+	data, err := os.ReadFile("./src/Fixture/users.json")
 	if err != nil {
 		fmt.Println("Error reading users.json:", err)
 		return users

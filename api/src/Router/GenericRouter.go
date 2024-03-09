@@ -44,7 +44,7 @@ func FindOne(rep repository.GenericRepositoryInterface, entity trait.IdentifierI
 		if err != nil {
 			return c.SendStatus(400)
 		}
-		rep.FindOneById(entity, id)
+		_ = rep.FindOneById(entity, id)
 		if entity.GetId() == 0 {
 			return c.SendStatus(404)
 		}
@@ -63,7 +63,7 @@ func FindAll(rep repository.GenericRepositoryInterface, entities interface{}, co
 			params["limit"] = 10
 		}
 
-		rep.FindAllBy(entities, params)
+		_ = rep.FindAllBy(entities, params)
 		utils.ApplyContext(entities, context)
 		return c.JSON(context)
 	}

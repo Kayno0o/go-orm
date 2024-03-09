@@ -29,26 +29,26 @@ func Authenticate(c *fiber.Ctx) error {
 	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithAudience("disquette.kayn.ooo"), jwt.WithIssuer("disquette.kayn.ooo"))
 
 	if err != nil || !token.Valid {
-		c.Status(401).SendString("Invalid token")
+		_ = c.Status(401).SendString("Invalid token")
 		return nil
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
 
 	if claims["exp"] == nil || claims["iat"] == nil {
-		c.Status(401).SendString("Invalid token")
+		_ = c.Status(401).SendString("Invalid token")
 		return nil
 	}
 
 	if int64(claims["exp"].(float64)) < time.Now().Unix() || int64(claims["iat"].(float64)) > time.Now().Unix() {
-		c.Status(401).SendString("Invalid token")
+		_ = c.Status(401).SendString("Invalid token")
 		return nil
 	}
 
 	id := claims["id"].(float64)
 
 	user := &entity.User{}
-	repository.UserRepository.FindOneById(user, int(id))
+	_ = repository.UserRepository.FindOneById(user, int(id))
 	c.Locals("user", user)
 
 	return c.Next()

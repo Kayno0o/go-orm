@@ -1,6 +1,7 @@
 package security
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -56,7 +57,7 @@ func Authenticate(login *entity.Login) (*entity.User, error) {
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password))
-	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
+	if err != nil && errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 		return nil, err
 	}
 
