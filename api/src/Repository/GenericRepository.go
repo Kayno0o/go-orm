@@ -4,15 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
-	"regexp"
-	"strconv"
-
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
+	trait "go-api-test.kayn.ooo/src/Entity/Trait"
+	"os"
+	"regexp"
+	"strconv"
+	"time"
 )
 
 var (
@@ -129,5 +130,9 @@ func (r *GenericRepository) Create(entity interface{}) (sql.Result, error) {
 }
 
 func (r *GenericRepository) Update(entity interface{}) (sql.Result, error) {
+	if timestampableEntity, ok := entity.(trait.Timestampable); ok {
+		timestampableEntity.UpdatedAt = time.Now()
+	}
+
 	return DB.NewUpdate().Model(entity).Exec(Ctx)
 }

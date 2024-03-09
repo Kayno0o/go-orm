@@ -27,14 +27,14 @@ func (ur *UserRouter) RegisterRoutes(r fiber.Router) {
 	)
 
 	// ADMIN
-	admin := group.AdminGroup(r)
+	admin := group.IsGranted(r, []string{"ROLE_ADMIN"})
 	admin.Get(
 		"/users/fixture/:amount",
 		ur.Fixture,
 	)
 
 	// USER
-	user := group.UserGroup(r)
+	user := group.IsGranted(r, []string{"ROLE_USER"})
 	user.Get(
 		"/user/me",
 		ur.Me,
