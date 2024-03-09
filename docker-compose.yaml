@@ -38,4 +38,7 @@ services:
 #      - ./.docker/adminer/plugins:/var/www/html/plugins-enabled
     environment:
       # @see https://github.com/vrana/adminer/tree/master/plugins
-      - ADMINER_PLUGINS=enum-types edit-textarea enum-option json-column login-ip
+      - ADMINER_PLUGINS=enum-types edit-textarea enum-option json-column
+      # @see https://github.com/vrana/adminer/tree/master/designs
+      - ADMINER_DESIGN=nette
+      - ADMINER_DEFAULT_SERVER=db

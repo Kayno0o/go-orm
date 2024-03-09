@@ -26,7 +26,7 @@ func Authenticate(c *fiber.Ctx) error {
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("SECRET_KEY")), nil
-	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithAudience("disquette.kayn.ooo"), jwt.WithIssuer("disquette.kayn.ooo"))
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithAudience(os.Getenv("JWT_ISSUER")), jwt.WithIssuer(os.Getenv("JWT_ISSUER")))
 
 	if err != nil || !token.Valid {
 		_ = c.Status(401).SendString("Invalid token")

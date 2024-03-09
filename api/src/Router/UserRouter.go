@@ -1,6 +1,7 @@
 package router
 
 import (
+	"os"
 	"strconv"
 	"time"
 
@@ -63,7 +64,7 @@ func (ur *UserRouter) RegisterRoutes(r fiber.Router) {
 	)
 }
 
-func (r *UserRouter) Login(c *fiber.Ctx) error {
+func (ur *UserRouter) Login(c *fiber.Ctx) error {
 	var login entity.Login
 	if err := c.BodyParser(&login); err != nil {
 		return c.SendStatus(400)
@@ -82,7 +83,7 @@ func (r *UserRouter) Login(c *fiber.Ctx) error {
 	return c.JSON(token)
 }
 
-func (r *UserRouter) Register(c *fiber.Ctx) error {
+func (ur *UserRouter) Register(c *fiber.Ctx) error {
 	var form entity.Register
 	if err := c.BodyParser(&form); err != nil {
 		return c.SendStatus(400)
@@ -112,14 +113,14 @@ func (r *UserRouter) Register(c *fiber.Ctx) error {
 		Path:     "/",
 		Expires:  token.ExpiresAt,
 		HTTPOnly: true,
-		Domain:   "disquette.kayn.ooo",
+		Domain:   os.Getenv("DOMAIN"),
 		Secure:   true,
 	})
 
 	return c.JSON(token)
 }
 
-func (r *UserRouter) Fixture(c *fiber.Ctx) error {
+func (ur *UserRouter) Fixture(c *fiber.Ctx) error {
 	amount, err := strconv.Atoi(c.Params("amount"))
 	if err != nil {
 		return c.SendStatus(400)
@@ -130,7 +131,7 @@ func (r *UserRouter) Fixture(c *fiber.Ctx) error {
 	return c.JSON(users)
 }
 
-func (r *UserRouter) Me(c *fiber.Ctx) error {
+func (ur *UserRouter) Me(c *fiber.Ctx) error {
 	user := c.Locals("user")
 	if user == nil {
 		return c.Status(401).SendString("Unauthorized - me")
@@ -139,14 +140,14 @@ func (r *UserRouter) Me(c *fiber.Ctx) error {
 	return c.JSON(user)
 }
 
-func (r *UserRouter) Logout(c *fiber.Ctx) error {
+func (ur *UserRouter) Logout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "token",
 		Value:    "",
 		Path:     "/",
 		Expires:  time.Now().Add(-time.Hour),
 		HTTPOnly: true,
-		Domain:   "disquette.kayn.ooo",
+		Domain:   os.Getenv("DOMAIN"),
 		Secure:   true,
 	})
 

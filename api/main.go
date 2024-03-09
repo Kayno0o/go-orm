@@ -16,7 +16,7 @@ func main() {
 		&entity.User{},
 	})
 
-	repository.DB.ResetModel(repository.Ctx, &entity.User{})
+	_ = repository.DB.ResetModel(repository.Ctx, &entity.User{})
 
 	if os.Getenv("ENV") == "dev" {
 		count, err := repository.UserRepository.CountAll(&entity.User{})

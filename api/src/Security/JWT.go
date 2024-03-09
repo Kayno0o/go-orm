@@ -32,8 +32,8 @@ func GenerateToken(user *entity.User) (*JWT, error) {
 	claims["id"] = user.ID
 	claims["iat"] = time.Now().Unix()
 	claims["exp"] = exp.Unix()
-	claims["aud"] = "disquette.kayn.ooo"
-	claims["iss"] = "disquette.kayn.ooo"
+	claims["aud"] = os.Getenv("JWT_ISSUER")
+	claims["iss"] = os.Getenv("JWT_ISSUER")
 
 	// Sign the token with the secret key and return a JWT struct with the token string
 	tokenString, err := token.SignedString(secretKey)
