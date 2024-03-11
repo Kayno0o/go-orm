@@ -47,9 +47,7 @@ func GenerateToken(user *entity.User) (*JWT, error) {
 }
 
 func Authenticate(login *entity.Login) (*entity.User, error) {
-	user := entity.User{}
-
-	err := repository.UserRepository.FindOneBy(&user, map[string]interface{}{
+	user, err := repository.FindOneBy[entity.User](map[string]interface{}{
 		"email": login.Email,
 	})
 	if err != nil {

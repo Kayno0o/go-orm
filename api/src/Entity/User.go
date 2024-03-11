@@ -7,8 +7,8 @@ import (
 
 type User struct {
 	bun.BaseModel `bun:"table:user,alias:u"`
-	trait.Identifier
-	trait.Timestampable
+	trait.IdentifiableTrait
+	trait.TimestampableTrait
 
 	Username string   `bun:",notnull" json:"username"`
 	Email    string   `bun:",notnull,unique" json:"email"`
@@ -32,7 +32,7 @@ type Register struct {
 	Password string `json:"password"`
 }
 
-func (u *User) HasRole(role string) bool {
+func (u User) HasRole(role string) bool {
 	for _, r := range u.Roles {
 		if r == role {
 			return true

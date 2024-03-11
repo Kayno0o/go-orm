@@ -1,9 +1,7 @@
 package repository
 
-var (
-	UserRepository = &UserRepositoryStruct{}
-)
+import entity "go-api-test.kayn.ooo/src/Entity"
 
 type UserRepositoryStruct struct {
-	GenericRepositoryStruct
+	*GenericRepositoryStruct[entity.User]
 }

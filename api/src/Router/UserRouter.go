@@ -15,10 +15,10 @@ import (
 )
 
 type UserRouter struct {
-	GenericRouterInterface
+	GenericRouterI
 }
 
-func (ur *UserRouter) RegisterRoutes(r fiber.Router) {
+func (ur UserRouter) RegisterRoutes(r fiber.Router) {
 	api := r.Group("/api")
 
 	api.Post(
@@ -46,50 +46,45 @@ func (ur *UserRouter) RegisterRoutes(r fiber.Router) {
 	// PUBLIC
 	api.Get(
 		"/users",
-		FindAll(
-			repository.UserRepository,
-			&[]entity.User{},
-			&[]entity.UserContext{},
+		GetAll[entity.User, entity.UserContext](
+			Params{},
 		),
 	).Get(
 		"/users/count",
-		CountAll(
-			repository.UserRepository,
-			&entity.User{},
+		CountAll[entity.User](
+			Params{},
 		),
 	).Get(
 		"/user/:id",
-		FindOne(
-			repository.UserRepository,
-			&entity.User{},
-			&entity.UserContext{},
+		GetOne[entity.User, entity.UserContext](
+			Params{},
 		),
 	)
 }
 
-func (ur *UserRouter) Login(c *fiber.Ctx) error {
+func (ur UserRouter) Login(c *fiber.Ctx) error {
 	var login entity.Login
 	if err := c.BodyParser(&login); err != nil {
-		return utils.HTTP400Error(c)
+		return utils.HTTP400Error(c, err.Error())
 	}
 
 	user, err := security.Authenticate(&login)
 	if err != nil {
-		return utils.HTTP401Error(c)
+		return utils.HTTP401Error(c, err.Error())
 	}
 
 	token, err := security.GenerateToken(user)
 	if err != nil {
-		return utils.HTTP500Error(c)
+		return utils.HTTP500Error(c, err.Error())
 	}
 
 	return c.JSON(token)
 }
 
-func (ur *UserRouter) Register(c *fiber.Ctx) error {
+func (ur UserRouter) Register(c *fiber.Ctx) error {
 	var form entity.Register
 	if err := c.BodyParser(&form); err != nil {
-		return utils.HTTP400Error(c)
+		return utils.HTTP400Error(c, err.Error())
 	}
 
 	var user entity.User
@@ -99,14 +94,14 @@ func (ur *UserRouter) Register(c *fiber.Ctx) error {
 	password := security.HashPassword(form.Password)
 	user.Password = password
 
-	_, err := repository.UserRepository.Create(&user)
+	_, err := repository.Create(&user)
 	if err != nil {
-		return utils.HTTP500Error(c)
+		return utils.HTTP500Error(c, err.Error())
 	}
 
 	token, err := security.GenerateToken(&user)
 	if err != nil {
-		return utils.HTTP500Error(c)
+		return utils.HTTP500Error(c, err.Error())
 	}
 
 	// add token to session/cookies
@@ -123,10 +118,10 @@ func (ur *UserRouter) Register(c *fiber.Ctx) error {
 	return c.JSON(token)
 }
 
-func (ur *UserRouter) Fixture(c *fiber.Ctx) error {
+func (ur UserRouter) Fixture(c *fiber.Ctx) error {
 	amount, err := strconv.Atoi(c.Params("amount"))
 	if err != nil {
-		return utils.HTTP400Error(c)
+		return utils.HTTP400Error(c, err.Error())
 	}
 
 	users := fixture.GenerateUsers(amount, false)
@@ -134,7 +129,7 @@ func (ur *UserRouter) Fixture(c *fiber.Ctx) error {
 	return c.JSON(users)
 }
 
-func (ur *UserRouter) Me(c *fiber.Ctx) error {
+func (ur UserRouter) Me(c *fiber.Ctx) error {
 	user := c.Locals("user")
 	if user == nil {
 		return utils.HTTP401Error(c)
@@ -143,7 +138,7 @@ func (ur *UserRouter) Me(c *fiber.Ctx) error {
 	return c.JSON(user)
 }
 
-func (ur *UserRouter) Logout(c *fiber.Ctx) error {
+func (ur UserRouter) Logout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "token",
 		Value:    "",

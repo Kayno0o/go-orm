@@ -19,26 +19,14 @@ import (
 )
 
 var (
-	DB                *bun.DB
-	Ctx               = context.Background()
-	GenericRepository = GenericRepositoryStruct{}
+	DB  *bun.DB
+	Ctx = context.Background()
 )
 
-type GenericRepositoryInterface interface {
-	FindOneById(entity interface{}, id uint) error
-	FindOneBy(entity interface{}, params map[string]interface{}) error
-	FindAll(entities interface{}) error
-	FindAllBy(entities interface{}, params map[string]interface{}) error
-	CountAll(entity interface{}) (int, error)
-	Create(entity interface{}) (sql.Result, error)
-	Update(entity interface{}) (sql.Result, error)
+type GenericRepositoryStruct[E trait.IdentifiableTraitI] struct {
 }
 
-type GenericRepositoryStruct struct {
-	GenericRepositoryInterface
-}
-
-func (r *GenericRepositoryStruct) Init(entities []interface{}) {
+func Init(entities []interface{}) {
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		fmt.Println("DB_URL environment variable is required")
@@ -72,11 +60,7 @@ func (r *GenericRepositoryStruct) Init(entities []interface{}) {
 	}
 }
 
-func (r *GenericRepositoryStruct) FindOneById(entity interface{}, id uint) error {
-	return DB.NewSelect().Model(entity).Where("id = ?", id).Scan(Ctx)
-}
-
-func (r *GenericRepositoryStruct) applyParams(model *bun.SelectQuery, params map[string]interface{}) *bun.SelectQuery {
+func applyParams(model *bun.SelectQuery, params map[string]interface{}) *bun.SelectQuery {
 	for key, value := range params {
 		if key == "limit" || key == "offset" {
 			limit, boolErr := value.(string)
@@ -106,54 +90,85 @@ func (r *GenericRepositoryStruct) applyParams(model *bun.SelectQuery, params map
 	return model
 }
 
-func (r *GenericRepositoryStruct) FindOneBy(entity interface{}, params map[string]interface{}) error {
-	model := DB.NewSelect().Model(entity)
+func FindEntityByRouteParam[E trait.IdentifiableTraitI](c *fiber.Ctx, param string) (E, error) {
+	var e E
+	id, err := strconv.ParseUint(c.Params(param), 10, 0)
+	if err != nil {
+		return e, utils.HTTP404Error(c, err.Error())
+	}
+
+	e, err = FindOneById[E](uint(id))
+	if err != nil {
+		return e, utils.HTTP404Error(c, err.Error())
+	}
+
+	return e, nil
+}
+
+func FindOneById[E trait.IdentifiableTraitI](id uint) (E, error) {
+	var e E
+	err := DB.NewSelect().Model(&e).Where("id = ?", id).Scan(Ctx)
+	return e, err
+}
+
+func FindOneBy[E trait.IdentifiableTraitI](params map[string]interface{}) (E, error) {
+	var e E
+	model := DB.NewSelect().Model(&e)
 	params["limit"] = 1
 	params["offset"] = 0
-	model = r.applyParams(model, params)
-	return model.Scan(Ctx)
+	model = applyParams(model, params)
+	err := model.Scan(Ctx)
+	return e, err
 }
 
-func (r *GenericRepositoryStruct) FindAll(entities interface{}) error {
-	return DB.NewSelect().Model(entities).OrderExpr("id ASC").Scan(Ctx)
+func FindAll[E trait.IdentifiableTraitI]() ([]E, error) {
+	var entities []E
+	err := DB.NewSelect().Model(&entities).OrderExpr("id ASC").Scan(Ctx)
+	return entities, err
 }
 
-func (r *GenericRepositoryStruct) FindAllBy(entities interface{}, params map[string]interface{}) error {
-	model := DB.NewSelect().Model(entities)
-	model = r.applyParams(model, params)
-	return model.OrderExpr("id ASC").Scan(Ctx)
+func FindAllBy[E trait.IdentifiableTraitI](params map[string]interface{}) ([]E, error) {
+	var entities []E
+	model := DB.NewSelect().Model(&entities)
+	model = applyParams(model, params)
+	err := model.OrderExpr("id ASC").Scan(Ctx)
+	return entities, err
 }
 
-func (r *GenericRepositoryStruct) CountAll(entity interface{}) (int, error) {
-	return DB.NewSelect().Model(entity).Count(Ctx)
+func CountAll[E trait.IdentifiableTraitI]() (int, error) {
+	var e E
+	return DB.NewSelect().Model(&e).Count(Ctx)
 }
 
-func (r *GenericRepositoryStruct) Create(entity interface{}) (sql.Result, error) {
-	return DB.NewInsert().Model(entity).Exec(Ctx)
+func CountAllBy[E trait.IdentifiableTraitI](params map[string]interface{}) (int, error) {
+	var e E
+	model := DB.NewSelect().Model(&e)
+	model = applyParams(model, params)
+	return model.Count(Ctx)
 }
 
-func (r *GenericRepositoryStruct) Update(entity interface{}) (sql.Result, error) {
-	if timestampableEntity, ok := entity.(trait.Timestampable); ok {
-		timestampableEntity.UpdatedAt = time.Now()
-	}
-	model := DB.NewUpdate().Model(entity)
-	if identifiableEntity, ok := entity.(trait.IdentifierInterface); ok {
-		model.Where("id = ?", identifiableEntity.GetId())
+func Create[E trait.IdentifiableTraitI](e *E) (sql.Result, error) {
+	model := DB.NewInsert().Model(e)
+	if timestampableEntity, ok := any(e).(trait.TimestampableTraitI); ok {
+		timestampableEntity.SetCreatedAt(time.Now())
 	}
 
 	return model.Exec(Ctx)
 }
 
-func FindEntityByRouteParam(c *fiber.Ctx, param string, entity interface{}) error {
-	id, err := strconv.ParseUint(c.Params(param), 10, 0)
-	if err != nil {
-		return utils.HTTP404Error(c)
+func Update[E any](e *E, id uint) (sql.Result, error) {
+	if timestampableEntity, ok := any(e).(trait.TimestampableTraitI); ok {
+		timestampableEntity.SetUpdatedAt(time.Now())
 	}
+	model := DB.NewUpdate().Model(e)
+	model.Where("id = ?", id)
 
-	err = GenericRepository.FindOneById(entity, uint(id))
-	if entity == nil || err != nil {
-		return utils.HTTP404Error(c)
-	}
+	return model.Exec(Ctx)
+}
 
-	return nil
+func Delete[E trait.IdentifiableTraitI](e *E) (sql.Result, error) {
+	model := DB.NewDelete().Model(&e)
+	model.Where("id = ?", (*e).GetId())
+
+	return model.Exec(Ctx)
 }

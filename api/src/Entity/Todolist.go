@@ -7,17 +7,21 @@ import (
 
 type Todolist struct {
 	bun.BaseModel `bun:"table:todolist,alias:t"`
-	trait.Identifier
-	trait.Timestampable
+	trait.IdentifiableTrait
+	trait.TimestampableTrait
+	OwnerableTrait
 
-	Checked bool   `bun:",notnull" json:"checked"`
-	Content string `bun:",notnull" json:"content"`
-
-	AuthorId uint `bun:",notnull" json:"author_id"`
+	Checked bool   `bun:",notnull"`
+	Content string `bun:",notnull"`
 }
 
 type TodolistContext struct {
 	ID      *uint  `json:"id"`
+	Checked bool   `json:"checked"`
+	Content string `json:"content"`
+}
+
+type TodolistEditContext struct {
 	Checked bool   `json:"checked"`
 	Content string `json:"content"`
 }

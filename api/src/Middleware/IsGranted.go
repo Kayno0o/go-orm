@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"github.com/gofiber/fiber/v2"
-	entity "go-api-test.kayn.ooo/src/Entity"
 	utils "go-api-test.kayn.ooo/src/Utils"
 )
 
@@ -14,12 +13,11 @@ var RoleHierarchy = map[string][]string{
 
 func IsGranted(roles []string) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		localUser := c.Locals("user")
-		if localUser == nil {
+		user := utils.GetUser(c)
+		if user == nil {
 			return utils.HTTP401Error(c)
 		}
 
-		user := localUser.(*entity.User)
 		for _, role := range roles {
 			if user.HasRole(role) {
 				return c.Next()

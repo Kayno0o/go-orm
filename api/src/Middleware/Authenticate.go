@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	utils "go-api-test.kayn.ooo/src/Utils"
 	"os"
 	"time"
 
@@ -37,7 +36,8 @@ func Authenticate(c *fiber.Ctx) error {
 	claims := token.Claims.(jwt.MapClaims)
 
 	if claims["exp"] == nil || claims["iat"] == nil {
-		return utils.HTTP401Error(c, "Invalid token")
+		c.ClearCookie("token")
+		return c.Next()
 	}
 
 	if int64(claims["exp"].(float64)) < time.Now().Unix() || int64(claims["iat"].(float64)) > time.Now().Unix() {
@@ -47,9 +47,10 @@ func Authenticate(c *fiber.Ctx) error {
 
 	id := claims["id"].(float64)
 
-	user := &entity.User{}
-	_ = repository.UserRepository.FindOneById(user, uint(id))
-	c.Locals("user", user)
+	user, err := repository.FindOneById[entity.User](uint(id))
+	if err == nil {
+		c.Locals("user", &user)
+	}
 
 	return c.Next()
 }
