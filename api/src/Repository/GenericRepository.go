@@ -102,6 +102,10 @@ func FindEntityByRouteParam[E trait.IdentifiableTraitI](c *fiber.Ctx, param stri
 		return e, utils.HTTP404Error(c, err.Error())
 	}
 
+	if any(e) == nil {
+		return e, utils.HTTP404Error(c)
+	}
+
 	return e, nil
 }
 
@@ -167,7 +171,7 @@ func Update[E any](e *E, id uint) (sql.Result, error) {
 }
 
 func Delete[E trait.IdentifiableTraitI](e *E) (sql.Result, error) {
-	model := DB.NewDelete().Model(&e)
+	model := DB.NewDelete().Model(e)
 	model.Where("id = ?", (*e).GetId())
 
 	return model.Exec(Ctx)

@@ -222,7 +222,7 @@ func Delete[E trait.IdentifiableTraitI](
 
 		_, err = repository.Delete(&e)
 		if err != nil {
-			return utils.HTTP400Error(c)
+			return utils.HTTP400Error(c, err.Error())
 		}
 		return nil
 	}
