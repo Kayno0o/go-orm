@@ -10,10 +10,10 @@ type TimestampableTraitI interface {
 }
 
 type TimestampableTrait struct {
-	TimestampableTraitI `bun:"-"`
+	TimestampableTraitI `bun:"-" json:"-"`
 
-	CreatedAt time.Time `bun:",nullzero,default:now()"`
-	UpdatedAt time.Time `bun:",nullzero,default:now()"`
+	CreatedAt time.Time `bun:",nullzero,default:now()" json:"created_at"`
+	UpdatedAt time.Time `bun:",nullzero,default:now()" json:"updated_at"`
 }
 
 func (t *TimestampableTrait) GetCreatedAt() time.Time {

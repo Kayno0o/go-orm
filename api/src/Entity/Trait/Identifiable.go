@@ -5,7 +5,7 @@ type IdentifiableTraitI interface {
 }
 
 type IdentifiableTrait struct {
-	IdentifiableTraitI `bun:"-"`
+	IdentifiableTraitI `bun:"-" json:"-"`
 
 	ID uint `bun:",pk,autoincrement" json:"id"`
 }
