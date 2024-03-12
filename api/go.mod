@@ -3,6 +3,7 @@ module go-api-test.kayn.ooo
 go 1.21
 
 require (
+	github.com/gofiber/contrib/websocket v1.3.0
 	github.com/gofiber/fiber/v2 v2.52.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/uptrace/bun/dialect/pgdialect v1.1.17
@@ -11,7 +12,10 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/fasthttp/websocket v1.5.8 // indirect
 	github.com/fatih/color v1.16.0 // indirect
+	github.com/savsgio/gotils v0.0.0-20240303185622-093b76447511 // indirect
+	golang.org/x/net v0.22.0 // indirect
 	mellium.im/sasl v0.3.1 // indirect
 )
 

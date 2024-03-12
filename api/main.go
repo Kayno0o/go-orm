@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	middleware "go-api-test.kayn.ooo/src/Middleware"
+	ws "go-api-test.kayn.ooo/src/Websocket"
 	"log"
 	"os"
 
@@ -42,6 +44,23 @@ func main() {
 
 	for i := range routers {
 		routers[i].RegisterRoutes(api)
+	}
+
+	router.FiberApp.Use("/ws", func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
+
+	websockets := []ws.GenericWsI{
+		&ws.MessageWs{},
+		&ws.TicTacToeWs{},
+	}
+
+	for i := range websockets {
+		websockets[i].Init()
 	}
 
 	log.Fatal(router.FiberApp.Listen(":3000"))
