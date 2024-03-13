@@ -32,10 +32,18 @@ func (ws *TicTacToeWs) Init() {
 
 	router.FiberApp.Get("/ws/tictactoe/:room", websocket.New(func(c *websocket.Conn) {
 		id := c.Params("room")
-		u := User{
-			Token: c.Query("token"),
-			Id:    c.Query("uid"),
-			Con:   c,
+		token := c.Query("token")
+		var u User
+		if Users[token] != nil {
+			u = *Users[token]
+		} else {
+			u = User{
+				Token: token,
+				Id:    c.Query("uid"),
+				Con:   c,
+			}
+			Users[token] = &u
+			fmt.Println("New: User:" + u.Token)
 		}
 
 		var room *TicTacToe
@@ -52,11 +60,22 @@ func (ws *TicTacToeWs) Init() {
 			room = rooms[id]
 		}
 		rooms[id].Spectators[u.Token] = &u
-		fmt.Println("New: User:" + u.Token)
+		fmt.Println("New: Player:" + u.Token)
 
 		err := u.SendMessage(room.JSON())
 		if err != nil {
 			return
+		}
+
+		quit := func() {
+			if room.P1 != nil && room.P1.Token == u.Token {
+				room.P1 = nil
+				room.SendState()
+			}
+			if room.P2 != nil && room.P2.Token == u.Token {
+				room.P2 = nil
+				room.SendState()
+			}
 		}
 
 		handleClientMessage := func(message messageClient) {
@@ -116,12 +135,16 @@ func (ws *TicTacToeWs) Init() {
 					room.SendState()
 				}
 				break
+			case "quit":
+				quit()
+				break
 			}
 		}
 
 		defer func() {
 			delete(room.Spectators, u.Token)
-			fmt.Println("Del: User:" + u.Token)
+			quit()
+			fmt.Println("Del: Player:" + u.Token)
 			if len(room.Spectators) == 0 {
 				delete(rooms, id)
 				fmt.Println("Del: Room:" + id)
