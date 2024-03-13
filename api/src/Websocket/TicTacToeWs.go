@@ -113,6 +113,7 @@ func (ws *TicTacToeWs) Init() {
 			case "restart":
 				if room.P1.Token == u.Token || room.P2.Token == u.Token {
 					room.Init()
+					room.SendState()
 				}
 				break
 			}
