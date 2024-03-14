@@ -25,6 +25,11 @@ type ClientMessage struct {
 	Content string `json:"content"`
 }
 
+type PlayerUpdate struct {
+	Color    string `json:"color"`
+	Username string `json:"username"`
+}
+
 type Update struct {
 	Type    string `json:"type"`
 	Path    string `json:"path"`
@@ -33,13 +38,14 @@ type Update struct {
 
 type RoomI[T any] interface {
 	GetUsers() map[string]*Player
+	GetPublicUsers() []*Player
 	GetUserIndex(*Player) int
 	GetData() T
 	Quit(*Player)
 	HandleMessage(*Player, ClientMessage)
 	AddUser(*Player)
 	SendMessage(any)
-	UpdateUser(*Player, string, any)
+	UpdateUser(*Player)
 }
 
 type Room[T any] struct {
@@ -138,14 +144,10 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 			room = *rooms[id]
 		}
 		room.AddUser(&u)
-		u.SendMessage(Update{"update", "*", room})
-		u.SendMessage(Update{"update", "user", u})
-		room.SendMessage(Update{"push", "users", u})
 
-		updateUser := func() {
-			u.SendMessage(Update{"update", "user", u})
-			repository.Update(&u.Player, u.ID)
-		}
+		u.SendMessage(Update{"update", "data", room.GetData()})
+		u.SendMessage(Update{"update", "user", u})
+		room.SendMessage(Update{"update", "users", room.GetPublicUsers()})
 
 		defer func() {
 			delete(room.GetUsers(), u.Token)
@@ -171,27 +173,24 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 				continue
 			}
 
-			if message.Type == "username" {
-				u.Username = message.Content
-				room.SendMessage(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)) + ".username", u.Username})
-				updateUser()
-
-				room.UpdateUser(&u, "username", message.Content)
-				continue
-			}
-
-			if message.Type == "color" {
-				color, err := utils.GetHexColor(message.Content)
+			if message.Type == "user" {
+				var input PlayerUpdate
+				err := json.Unmarshal([]byte(message.Content), &input)
 				if err != nil {
 					continue
 				}
 
-				u.Color = color
-				room.SendMessage(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)) + ".color", u.Color})
-				updateUser()
+				u.Username = input.Username
+				color, err := utils.GetHexColor(input.Color)
+				if err == nil {
+					u.Color = color
+				}
 
-				room.UpdateUser(&u, "color", color)
-				continue
+				room.SendMessage(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
+				u.SendMessage(Update{"update", "user", u})
+				repository.Update(&u.Player, u.ID)
+
+				room.UpdateUser(&u)
 			}
 
 			room.HandleMessage(&u, message)

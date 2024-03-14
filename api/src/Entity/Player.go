@@ -14,3 +14,7 @@ type Player struct {
 	Username string `bun:"," json:"username"`
 	Color    string `bun:"," json:"color"`
 }
+
+type Guest interface {
+	Player | User
+}

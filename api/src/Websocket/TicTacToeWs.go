@@ -39,13 +39,13 @@ func (r *TicTacToeRoom) Quit(u *Player) {
 	}
 }
 
-func (r *TicTacToeRoom) UpdateUser(u *Player, field string, data any) {
+func (r *TicTacToeRoom) UpdateUser(u *Player) {
 	if r.Data.P1 != nil && r.Data.P1.Uid == u.Uid {
-		r.SendUpdate("data.p1."+field, data)
+		r.SendUpdate("data.p1", u)
 	}
 
 	if r.Data.P2 != nil && r.Data.P2.Uid == u.Uid {
-		r.SendUpdate("data.p2."+field, data)
+		r.SendUpdate("data.p2", u)
 	}
 }
 
