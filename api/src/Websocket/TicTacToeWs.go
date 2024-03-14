@@ -2,9 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/gofiber/contrib/websocket"
-	router "go-api-test.kayn.ooo/src/Router"
 	"log"
 	"strconv"
 )
@@ -13,159 +10,103 @@ type TicTacToeWs struct {
 	GenericWsI
 }
 
-type messageWs struct {
-	User    User   `json:"user"`
-	Message string `json:"message"`
-}
-
-type messageClient struct {
-	MessageType    string `json:"type"`
-	MessageContent string `json:"content"`
-}
-
-func SendMessage(c *websocket.Conn, message string) error {
-	return c.WriteMessage(websocket.TextMessage, []byte(message))
-}
-
 func (ws *TicTacToeWs) Init() {
-	rooms := make(map[string]*TicTacToe)
-
-	router.FiberApp.Get("/ws/tictactoe/:room", websocket.New(func(c *websocket.Conn) {
-		id := c.Params("room")
-		token := c.Query("token")
-		var u User
-		if Users[token] != nil {
-			u = *Users[token]
-		} else {
-			u = User{
-				Token: token,
-				Id:    c.Query("uid"),
-				Con:   c,
-			}
-			Users[token] = &u
-			fmt.Println("New: User:" + u.Token)
+	Handle("tictactoe", func(u *Player) *TicTacToeRoom {
+		room := &TicTacToeRoom{
+			Room: Room[TicTacToe]{
+				Users: map[string]*Player{
+					u.Token: u,
+				},
+			},
 		}
+		room.Data.Init()
+		return room
+	})
+}
 
-		var room *TicTacToe
+type TicTacToeRoom struct {
+	Room[TicTacToe]
+}
 
-		if rooms[id] == nil {
-			room = &TicTacToe{
-				Spectators: make(map[string]*User),
-			}
-			room.Init()
+func (r *TicTacToeRoom) Quit(u *Player) {
+	if r.Data.P1 != nil && r.Data.P1.Token == u.Token {
+		r.Data.P1 = nil
+		r.SendUpdate("data.p1", nil)
+	}
+	if r.Data.P2 != nil && r.Data.P2.Token == u.Token {
+		r.Data.P2 = nil
+		r.SendUpdate("data.p2", nil)
+	}
+}
 
-			rooms[id] = room
-			fmt.Println("New: Room:" + id)
-		} else {
-			room = rooms[id]
-		}
-		rooms[id].Spectators[u.Token] = &u
-		fmt.Println("New: Player:" + u.Token)
+func (r *TicTacToeRoom) UpdateUser(u *Player, field string, data any) {
+	if r.Data.P1 != nil && r.Data.P1.Uid == u.Uid {
+		r.SendUpdate("data.p1."+field, data)
+	}
 
-		err := u.SendMessage(room.JSON())
+	if r.Data.P2 != nil && r.Data.P2.Uid == u.Uid {
+		r.SendUpdate("data.p2."+field, data)
+	}
+}
+
+func (r *TicTacToeRoom) HandleMessage(u *Player, message ClientMessage) {
+	switch message.Type {
+	case "click":
+		var pos []int
+		err := json.Unmarshal([]byte(message.Content), &pos)
 		if err != nil {
-			return
+			log.Println("Err:Click:", err)
+			break
 		}
 
-		quit := func() {
-			if room.P1 != nil && room.P1.Token == u.Token {
-				room.P1 = nil
-				room.SendState()
-			}
-			if room.P2 != nil && room.P2.Token == u.Token {
-				room.P2 = nil
-				room.SendState()
-			}
+		gameState := r.Data.State
+		curr := r.Data.CurrentPlayer
+
+		played := r.Data.Play(u, pos[0], pos[1])
+		if played != 0 {
+			r.SendUpdate("data.board."+strconv.Itoa(pos[1])+"."+strconv.Itoa(pos[0]), played)
 		}
 
-		handleClientMessage := func(message messageClient) {
-			switch message.MessageType {
-			case "username":
-				room.Spectators[u.Token].Username = message.MessageContent
-				fmt.Println("Update User:" + u.Token + " Username:" + message.MessageContent)
-				break
-			case "click":
-				var pos []int
-				err := json.Unmarshal([]byte(message.MessageContent), &pos)
-				if err != nil {
-					fmt.Println("click error", err)
-					break
-				}
-
-				if room.CurrentPlayer == 1 {
-					if room.P1 != nil && room.P1.Token == u.Token {
-						room.Play(pos[0], pos[1])
-						room.SendState()
-					}
-				}
-
-				if room.CurrentPlayer == 2 {
-					if room.P2 != nil && room.P2.Token == u.Token {
-						room.Play(pos[0], pos[1])
-						room.SendState()
-					}
-				}
-				break
-			case "join":
-				nb, err := strconv.Atoi(message.MessageContent)
-				if err != nil {
-					fmt.Println("join error", err)
-					break
-				}
-
-				if (room.P1 != nil && room.P1.Token == u.Token) || (room.P2 != nil && room.P2.Token == u.Token) {
-					fmt.Println("User:" + u.Token + " already a player")
-					break
-				}
-
-				if nb == 1 {
-					room.P1 = &u
-					fmt.Println("User:" + u.Token + " joined as p1")
-					room.SendState()
-				}
-
-				if nb == 2 {
-					room.P2 = &u
-					fmt.Println("User:" + u.Token + " joined as p2")
-					room.SendState()
-				}
-			case "restart":
-				if room.P1.Token == u.Token || room.P2.Token == u.Token {
-					room.Init()
-					room.SendState()
-				}
-				break
-			case "quit":
-				quit()
-				break
-			}
+		if r.Data.State != gameState {
+			r.SendUpdate("data.state", r.Data.State)
 		}
 
-		defer func() {
-			delete(room.Spectators, u.Token)
-			quit()
-			fmt.Println("Del: Player:" + u.Token)
-			if len(room.Spectators) == 0 {
-				delete(rooms, id)
-				fmt.Println("Del: Room:" + id)
-			}
-		}()
-
-		for {
-			_, msg, err := c.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				break
-			}
-			log.Printf("recv: %s", msg)
-
-			message := messageClient{}
-			if err = json.Unmarshal(msg, &message); err != nil {
-				fmt.Println("Error while receiving message", err)
-				continue
-			}
-
-			handleClientMessage(message)
+		if r.Data.CurrentPlayer != curr {
+			r.SendUpdate("data.currentPlayer", r.Data.CurrentPlayer)
 		}
-	}))
+
+		break
+	case "join":
+		nb, err := strconv.Atoi(message.Content)
+		if err != nil {
+			log.Println("Err:Join:", err)
+			break
+		}
+
+		if (r.Data.P1 != nil && r.Data.P1.Token == u.Token) || (r.Data.P2 != nil && r.Data.P2.Token == u.Token) {
+			log.Println("User:" + u.Token + " already a player")
+			break
+		}
+
+		if nb == 1 {
+			r.Data.P1 = u
+			log.Println("User:" + u.Token + " joined as p1")
+			r.SendUpdate("data.p1", u)
+		}
+
+		if nb == 2 {
+			r.Data.P2 = u
+			log.Println("User:" + u.Token + " joined as p2")
+			r.SendUpdate("data.p2", u)
+		}
+	case "restart":
+		if r.Data.P1.Token == u.Token || r.Data.P2.Token == u.Token {
+			r.Data.Init()
+			r.SendUpdate("data", r.Data)
+		}
+		break
+	case "quit":
+		r.Quit(u)
+		break
+	}
 }

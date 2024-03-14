@@ -1,15 +1,16 @@
 package ws
 
-import "github.com/gofiber/contrib/websocket"
+import (
+	"github.com/gofiber/contrib/websocket"
+	entity "go-api-test.kayn.ooo/src/Entity"
+	utils "go-api-test.kayn.ooo/src/Utils"
+)
 
-type User struct {
-	Con      *websocket.Conn `json:"-"`
-	Token    string          `json:"-"`
-	Id       string          `json:"id"`
-	Username string          `json:"username"`
-	Color    string          `json:"color"`
+type Player struct {
+	entity.Player
+	Con *websocket.Conn `bun:"-" json:"-"`
 }
 
-func (u *User) SendMessage(message string) error {
-	return SendMessage(u.Con, message)
+func (u *Player) SendMessage(message any) error {
+	return SendMessage(u.Con, utils.Stringify(message))
 }

@@ -2,7 +2,8 @@ package utils
 
 import (
 	"errors"
-	"fmt"
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -20,7 +21,7 @@ func HTTPError(c *fiber.Ctx, code int, message ...string) error {
 		"Error": errorMessage,
 	})
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 	return errors.New(errorMessage)

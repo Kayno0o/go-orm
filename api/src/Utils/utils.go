@@ -2,6 +2,9 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
+	"regexp"
+
 	"github.com/gofiber/fiber/v2"
 	entity "go-api-test.kayn.ooo/src/Entity"
 	trait "go-api-test.kayn.ooo/src/Entity/Trait"
@@ -113,4 +116,29 @@ func MergeMaps[U comparable, T any](maps ...map[U]T) map[U]T {
 
 func GetUser[T *entity.User](c *fiber.Ctx) T {
 	return c.Locals("user").(T)
+}
+
+func Stringify(r any) string {
+	str, err := json.Marshal(&r)
+	if err != nil {
+		return ""
+	}
+	return string(str)
+}
+
+func GetHexColor(hex string) (string, error) {
+	re := regexp.MustCompile(`(?m)^(?:\#|0x|)([a-fA-F0-9]{6})$`)
+	matches := re.FindStringSubmatch(hex)
+	if len(matches) > 1 {
+		return "#" + matches[1], nil
+	}
+	return "", errors.New("No color matches")
+}
+
+func MapToArray[T any](m map[string]T) []T {
+	items := make([]T, 0)
+	for _, value := range m {
+		items = append(items, value)
+	}
+	return items
 }

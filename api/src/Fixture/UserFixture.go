@@ -2,7 +2,7 @@ package fixture
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"strings"
@@ -30,7 +30,7 @@ func GenerateUsersFromJson() []entity.User {
 
 	data, err := os.ReadFile("./src/Fixture/users.json")
 	if err != nil {
-		fmt.Println("Error reading users.json:", err)
+		log.Println("Error reading users.json:", err)
 		return users
 	}
 
@@ -42,7 +42,7 @@ func GenerateUsersFromJson() []entity.User {
 	}
 
 	if err := json.Unmarshal(data, &usersData); err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
+		log.Println("Error unmarshaling JSON:", err)
 		return users
 	}
 

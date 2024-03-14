@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
+	"os"
+
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	middleware "go-api-test.kayn.ooo/src/Middleware"
 	ws "go-api-test.kayn.ooo/src/Websocket"
-	"log"
-	"os"
 
 	entity "go-api-test.kayn.ooo/src/Entity"
 	fixture "go-api-test.kayn.ooo/src/Fixture"
@@ -20,13 +20,14 @@ func main() {
 	repository.Init([]interface{}{
 		&entity.User{},
 		&entity.Todolist{},
+		&entity.Player{},
 	})
 
 	if os.Getenv("ENV") == "dev" {
 		count, err := repository.CountAll[entity.User]()
 		if err == nil && count == 0 {
 			users := fixture.GenerateUsersFromJson()
-			fmt.Println("Loaded", len(users), "user(s) from users.json")
+			log.Println("Loaded", len(users), "user(s) from users.json")
 		}
 	}
 

@@ -3,7 +3,12 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"log"
+	"os"
+	"regexp"
+	"strconv"
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gofiber/fiber/v2"
 	"github.com/uptrace/bun"
@@ -12,10 +17,6 @@ import (
 	"github.com/uptrace/bun/extra/bundebug"
 	trait "go-api-test.kayn.ooo/src/Entity/Trait"
 	utils "go-api-test.kayn.ooo/src/Utils"
-	"os"
-	"regexp"
-	"strconv"
-	"time"
 )
 
 var (
@@ -29,7 +30,7 @@ type GenericRepositoryStruct[E trait.IdentifiableTraitI] struct {
 func Init(entities []interface{}) {
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
-		fmt.Println("DB_URL environment variable is required")
+		log.Println("DB_URL environment variable is required")
 		os.Exit(1)
 	}
 
