@@ -11,6 +11,6 @@ type Player struct {
 	Con *websocket.Conn `bun:"-" json:"-"`
 }
 
-func (u *Player) SendMessage(message any) error {
-	return SendMessage(u.Con, utils.Stringify(message))
+func (u *Player) Write(message any) error {
+	return WriteWsMessage(u.Con, utils.Stringify(message))
 }

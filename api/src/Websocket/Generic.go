@@ -12,7 +12,7 @@ import (
 	utils "go-api-test.kayn.ooo/src/Utils"
 )
 
-func SendMessage(c *websocket.Conn, message string) error {
+func WriteWsMessage(c *websocket.Conn, message string) error {
 	return c.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
@@ -42,10 +42,18 @@ type RoomI[T any] interface {
 	GetUserIndex(*Player) int
 	GetData() T
 	Quit(*Player)
-	HandleMessage(*Player, ClientMessage)
+	HandleResponse(*Player, ClientMessage)
 	AddUser(*Player)
-	SendMessage(any)
+	Write(any)
 	UpdateUser(*Player)
+	AddMessage(*Player, string)
+}
+
+type Message struct {
+	Username string `json:"username"`
+	Content  string `json:"content"`
+	Color    string `json:"color"`
+	Id       string `json:"id"`
 }
 
 type Room[T any] struct {
@@ -53,6 +61,7 @@ type Room[T any] struct {
 	Users       map[string]*Player `json:"-"`
 	PublicUsers []*Player          `json:"users"`
 	Data        T                  `json:"data"`
+	Messages    []Message          `json:"messages"`
 }
 
 func (r *Room[T]) GetUsers() map[string]*Player {
@@ -67,17 +76,9 @@ func (r *Room[T]) UpdatePublicUsers() {
 	r.PublicUsers = utils.MapToArray(r.Users)
 }
 
-func (r *Room[T]) SendState() {
-	r.SendUpdate("*", r)
-}
-
-func (r *Room[T]) SendUpdate(path string, object any) {
-	r.SendMessage(Update{"update", path, object})
-}
-
-func (r *Room[T]) SendMessage(object any) {
+func (r *Room[T]) Write(object any) {
 	for _, u := range r.Users {
-		_ = u.SendMessage(object)
+		_ = u.Write(object)
 	}
 }
 
@@ -98,6 +99,24 @@ func (r *Room[T]) GetUserIndex(u *Player) int {
 		}
 	}
 	return -1
+}
+
+func (r *Room[T]) AddMessage(u *Player, content string) {
+	id, err := utils.RandomString(10)
+	if err != nil {
+		return
+	}
+
+	message := Message{u.Username, content, u.Color, id}
+
+	r.Messages = append(r.Messages, message)
+
+	maxMsg := 50
+	if len(r.Messages) > maxMsg {
+		r.Messages = r.Messages[len(r.Messages)-maxMsg:]
+	}
+
+	r.Write(Update{"push", "messages", message})
 }
 
 func (r *Room[T]) UpdateUser(*Player, string, any) {}
@@ -130,7 +149,7 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 		}
 
 		if u.Username == "" {
-			u.SendMessage(Update{"request", "username", nil})
+			u.Write(Update{"request", "username", nil})
 		}
 
 		var room R
@@ -145,12 +164,12 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 		}
 		room.AddUser(&u)
 
-		u.SendMessage(Update{"update", "*", room})
-		u.SendMessage(Update{"update", "user", u})
-		room.SendMessage(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
+		u.Write(Update{"update", "*", room})
+		u.Write(Update{"update", "user", u})
+		room.Write(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
 
 		defer func() {
-			room.SendMessage(Update{"delete", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
+			room.Write(Update{"delete", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
 			delete(room.GetUsers(), u.Token)
 			room.Quit(&u)
 			log.Println("Del:Player:" + u.Token)
@@ -187,14 +206,19 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 					u.Color = color
 				}
 
-				room.SendMessage(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
-				u.SendMessage(Update{"update", "user", u})
+				room.Write(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
+				u.Write(Update{"update", "user", u})
 				repository.Update(&u.Player, u.ID)
 
 				room.UpdateUser(&u)
 			}
 
-			room.HandleMessage(&u, message)
+			if message.Type == "message" {
+				room.AddMessage(&u, message.Content)
+				continue
+			}
+
+			room.HandleResponse(&u, message)
 		}
 	}))
 }

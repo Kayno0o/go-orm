@@ -17,6 +17,7 @@ func (ws *TicTacToeWs) Init() {
 				Users: map[string]*Player{
 					u.Token: u,
 				},
+				Messages: make([]Message, 0),
 			},
 		}
 		room.Data.Init()
@@ -31,25 +32,25 @@ type TicTacToeRoom struct {
 func (r *TicTacToeRoom) Quit(u *Player) {
 	if r.Data.P1 != nil && r.Data.P1.Token == u.Token {
 		r.Data.P1 = nil
-		r.SendUpdate("data.p1", nil)
+		r.Write(Update{"update", "data.p1", nil})
 	}
 	if r.Data.P2 != nil && r.Data.P2.Token == u.Token {
 		r.Data.P2 = nil
-		r.SendUpdate("data.p2", nil)
+		r.Write(Update{"update", "data.p2", nil})
 	}
 }
 
 func (r *TicTacToeRoom) UpdateUser(u *Player) {
 	if r.Data.P1 != nil && r.Data.P1.Uid == u.Uid {
-		r.SendUpdate("data.p1", u)
+		r.Write(Update{"update", "data.p1", u})
 	}
 
 	if r.Data.P2 != nil && r.Data.P2.Uid == u.Uid {
-		r.SendUpdate("data.p2", u)
+		r.Write(Update{"update", "data.p2", u})
 	}
 }
 
-func (r *TicTacToeRoom) HandleMessage(u *Player, message ClientMessage) {
+func (r *TicTacToeRoom) HandleResponse(u *Player, message ClientMessage) {
 	switch message.Type {
 	case "click":
 		var pos []int
@@ -64,15 +65,15 @@ func (r *TicTacToeRoom) HandleMessage(u *Player, message ClientMessage) {
 
 		played := r.Data.Play(u, pos[0], pos[1])
 		if played != 0 {
-			r.SendUpdate("data.board."+strconv.Itoa(pos[1])+"."+strconv.Itoa(pos[0]), played)
+			r.Write(Update{"update", "data.board." + strconv.Itoa(pos[1]) + "." + strconv.Itoa(pos[0]), played})
 		}
 
 		if r.Data.State != gameState {
-			r.SendUpdate("data.state", r.Data.State)
+			r.Write(Update{"update", "data.state", r.Data.State})
 		}
 
 		if r.Data.CurrentPlayer != curr {
-			r.SendUpdate("data.currentPlayer", r.Data.CurrentPlayer)
+			r.Write(Update{"update", "data.currentPlayer", r.Data.CurrentPlayer})
 		}
 
 		break
@@ -91,18 +92,18 @@ func (r *TicTacToeRoom) HandleMessage(u *Player, message ClientMessage) {
 		if nb == 1 {
 			r.Data.P1 = u
 			log.Println("User:" + u.Token + " joined as p1")
-			r.SendUpdate("data.p1", u)
+			r.Write(Update{"update", "data.p1", u})
 		}
 
 		if nb == 2 {
 			r.Data.P2 = u
 			log.Println("User:" + u.Token + " joined as p2")
-			r.SendUpdate("data.p2", u)
+			r.Write(Update{"update", "data.p2", u})
 		}
 	case "restart":
 		if r.Data.P1.Token == u.Token || r.Data.P2.Token == u.Token {
 			r.Data.Init()
-			r.SendUpdate("data", r.Data)
+			r.Write(Update{"update", "data", r.Data})
 		}
 		break
 	case "quit":

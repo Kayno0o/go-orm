@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"regexp"
@@ -141,4 +143,20 @@ func MapToArray[T any](m map[string]T) []T {
 		items = append(items, value)
 	}
 	return items
+}
+
+func RandomString(length int) (string, error) {
+	// Create a byte slice to hold the random bytes
+	randomBytes := make([]byte, length)
+
+	// Read random bytes from crypto/rand
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Encode random bytes to a base64 string
+	randomString := base64.URLEncoding.EncodeToString(randomBytes)
+
+	return randomString, nil
 }
