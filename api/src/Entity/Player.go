@@ -11,6 +11,6 @@ type Player struct {
 
 	Token    string `bun:",unique" json:"-"`
 	Uid      string `bun:"," json:"id"`
-	Username string `bun:",nullable" json:"username"`
-	Color    string `bun:",nullable" json:"color"`
+	Username string `bun:"," json:"username"`
+	Color    string `bun:"," json:"color"`
 }
