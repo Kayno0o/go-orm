@@ -145,11 +145,12 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 		}
 		room.AddUser(&u)
 
-		u.SendMessage(Update{"update", "data", room.GetData()})
+		u.SendMessage(Update{"update", "*", room})
 		u.SendMessage(Update{"update", "user", u})
-		room.SendMessage(Update{"update", "users", room.GetPublicUsers()})
+		room.SendMessage(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
 
 		defer func() {
+			room.SendMessage(Update{"delete", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
 			delete(room.GetUsers(), u.Token)
 			room.Quit(&u)
 			log.Println("Del:Player:" + u.Token)
