@@ -137,7 +137,7 @@ func GetHexColor(hex string) (string, error) {
 	return "", errors.New("No color matches")
 }
 
-func MapToArray[T any](m map[string]T) []T {
+func MapToArray[T any, U comparable](m map[U]T) []T {
 	items := make([]T, 0)
 	for _, value := range m {
 		items = append(items, value)

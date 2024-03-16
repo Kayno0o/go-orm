@@ -9,13 +9,22 @@ type TicTacToe struct {
 	P2            *Player  `json:"p2"`
 	CurrentPlayer int8     `json:"currentPlayer"`
 	Board         [][]int8 `json:"board"`
-	State         string   `json:"state"` // 'pending' | 'p1' | 'p2' | 'tie'
+	State         string   `json:"state"`  // 'pending' | 'p1' | 'p2' | 'tie'
+	Size          int8     `json:"size"`   // size of the board
+	Length        int8     `json:"length"` // length to win
 }
 
 func (t *TicTacToe) Init() {
-	board := make([][]int8, 3)
+	if t.Size == 0 {
+		t.Size = 3
+	}
+	if t.Length == 0 {
+		t.Length = 3
+	}
+
+	board := make([][]int8, t.Size)
 	for i := range board {
-		board[i] = make([]int8, 3)
+		board[i] = make([]int8, t.Size)
 		for j := range board[i] {
 			board[i][j] = 0
 		}

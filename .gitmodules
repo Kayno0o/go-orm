@@ -1,4 +1,0 @@
-[submodule "client"]
-	path = client
-	url = git@github.com:Kayno0o/default-nuxt-app.git
-	branch = go-orm

@@ -2,8 +2,10 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/contrib/websocket"
 	entity "go-api-test.kayn.ooo/src/Entity"
@@ -36,17 +38,9 @@ type Update struct {
 	Content any    `json:"content"`
 }
 
-type RoomI[T any] interface {
-	GetUsers() map[string]*Player
-	GetPublicUsers() []*Player
-	GetUserIndex(*Player) int
-	GetData() T
-	Quit(*Player)
-	HandleResponse(*Player, ClientMessage)
-	AddUser(*Player)
-	Write(any)
-	UpdateUser(*Player)
-	AddMessage(*Player, string)
+type UserUpdate struct {
+	User   *Player
+	Update Update
 }
 
 type Message struct {
@@ -56,70 +50,57 @@ type Message struct {
 	Id       string `json:"id"`
 }
 
-type Room[T any] struct {
-	RoomI[T]    `json:"-"`
-	Users       map[string]*Player `json:"-"`
-	PublicUsers []*Player          `json:"users"`
-	Data        T                  `json:"data"`
-	Messages    []Message          `json:"messages"`
-}
+func Updater[T any, R RoomI[T]](r R, add chan any) {
+	var updates []any
 
-func (r *Room[T]) GetUsers() map[string]*Player {
-	return r.Users
-}
+	userUpdates := make(map[*Player][]Update)
 
-func (r *Room[T]) GetPublicUsers() []*Player {
-	return r.PublicUsers
-}
+	// continuously receive updates channel
+	go func() {
+		defer close(add)
 
-func (r *Room[T]) UpdatePublicUsers() {
-	r.PublicUsers = utils.MapToArray(r.Users)
-}
+		for update := range add {
+			switch u := update.(type) {
+			case UserUpdate:
+				userUpdates[u.User] = append(userUpdates[u.User], u.Update)
+				break
+			default:
+				updates = append(updates, update)
+				break
+			}
+		}
+	}()
 
-func (r *Room[T]) Write(object any) {
-	for _, u := range r.Users {
-		_ = u.Write(object)
-	}
-}
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
 
-func (r *Room[T]) GetData() T {
-	return r.Data
-}
+	// on timer deliver -> send all updates in groups
+	for {
+		select {
+		case <-ticker.C:
+			if len(updates) > 0 {
+				fmt.Println("Send:Updates:" + strconv.Itoa(len(updates)))
 
-func (r *Room[T]) AddUser(u *Player) {
-	r.Users[u.Token] = u
-	r.UpdatePublicUsers()
-}
+				for _, u := range r.GetUsers() {
+					userUpdatesConverted := make([]any, len(userUpdates[u]))
+					for i, update := range userUpdates[u] {
+						userUpdatesConverted[i] = update
+					}
 
-func (r *Room[T]) GetUserIndex(u *Player) int {
-	users := r.GetPublicUsers()
-	for i, user := range users {
-		if user.Token == u.Token {
-			return i
+					localUpdates := append(updates, userUpdatesConverted...)
+					if len(localUpdates) == 1 {
+						_ = u.Write(localUpdates[0])
+					} else {
+						_ = u.Write(localUpdates)
+					}
+				}
+
+				updates = []any{}
+				userUpdates = make(map[*Player][]Update)
+			}
 		}
 	}
-	return -1
 }
-
-func (r *Room[T]) AddMessage(u *Player, content string) {
-	id, err := utils.RandomString(10)
-	if err != nil {
-		return
-	}
-
-	message := Message{u.Username, content, u.Color, id}
-
-	r.Messages = append(r.Messages, message)
-
-	maxMsg := 50
-	if len(r.Messages) > maxMsg {
-		r.Messages = r.Messages[len(r.Messages)-maxMsg:]
-	}
-
-	r.Write(Update{"push", "messages", message})
-}
-
-func (r *Room[T]) UpdateUser(*Player, string, any) {}
 
 func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 	rooms := make(map[string]*R)
@@ -148,28 +129,34 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 			log.Println("Con:User:" + utils.Stringify(u))
 		}
 
-		if u.Username == "" {
-			u.Write(Update{"request", "username", nil})
-		}
-
 		var room R
 
 		if rooms[id] == nil {
 			room = init(&u)
-
+			room.Init()
 			rooms[id] = &room
+			room.AddUser(&u)
+			room.SetAuthor(&u)
 			log.Println("New:Room:" + id)
 		} else {
 			room = *rooms[id]
 		}
 		room.AddUser(&u)
 
-		u.Write(Update{"update", "*", room})
-		u.Write(Update{"update", "user", u})
-		room.Write(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
+		if u.Username == "" {
+			room.Update(UserUpdate{&u, Update{"request", "username", nil}})
+		}
+
+		if room.IsAuthor(&u) {
+			room.Update(UserUpdate{&u, Update{"update", "isAuthor", true}})
+		}
+
+		room.Update(UserUpdate{&u, Update{"update", "*", room}})
+		room.Update(UserUpdate{&u, Update{"update", "user", u}})
+		room.Update(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
 
 		defer func() {
-			room.Write(Update{"delete", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
+			room.Update(Update{"delete", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
 			delete(room.GetUsers(), u.Token)
 			room.Quit(&u)
 			log.Println("Del:Player:" + u.Token)
@@ -206,8 +193,8 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 					u.Color = color
 				}
 
-				room.Write(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
-				u.Write(Update{"update", "user", u})
+				room.Update(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
+				room.Update(UserUpdate{&u, Update{"update", "user", u}})
 				repository.Update(&u.Player, u.ID)
 
 				room.UpdateUser(&u)

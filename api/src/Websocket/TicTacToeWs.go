@@ -13,12 +13,7 @@ type TicTacToeWs struct {
 func (ws *TicTacToeWs) Init() {
 	Handle("tictactoe", func(u *Player) *TicTacToeRoom {
 		room := &TicTacToeRoom{
-			Room: Room[TicTacToe]{
-				Users: map[string]*Player{
-					u.Token: u,
-				},
-				Messages: make([]Message, 0),
-			},
+			Room: Room[TicTacToe]{},
 		}
 		room.Data.Init()
 		return room
@@ -32,22 +27,27 @@ type TicTacToeRoom struct {
 func (r *TicTacToeRoom) Quit(u *Player) {
 	if r.Data.P1 != nil && r.Data.P1.Token == u.Token {
 		r.Data.P1 = nil
-		r.Write(Update{"update", "data.p1", nil})
+		r.Add <- Update{"update", "data.p1", nil}
 	}
 	if r.Data.P2 != nil && r.Data.P2.Token == u.Token {
 		r.Data.P2 = nil
-		r.Write(Update{"update", "data.p2", nil})
+		r.Add <- Update{"update", "data.p2", nil}
 	}
 }
 
 func (r *TicTacToeRoom) UpdateUser(u *Player) {
 	if r.Data.P1 != nil && r.Data.P1.Uid == u.Uid {
-		r.Write(Update{"update", "data.p1", u})
+		r.Add <- Update{"update", "data.p1", u}
 	}
 
 	if r.Data.P2 != nil && r.Data.P2.Uid == u.Uid {
-		r.Write(Update{"update", "data.p2", u})
+		r.Add <- Update{"update", "data.p2", u}
 	}
+}
+
+type configUpdate struct {
+	Size   int8 `json:"size"`
+	Length int8 `json:"length"`
 }
 
 func (r *TicTacToeRoom) HandleResponse(u *Player, message ClientMessage) {
@@ -64,18 +64,49 @@ func (r *TicTacToeRoom) HandleResponse(u *Player, message ClientMessage) {
 		curr := r.Data.CurrentPlayer
 
 		played := r.Data.Play(u, pos[0], pos[1])
+
 		if played != 0 {
-			r.Write(Update{"update", "data.board." + strconv.Itoa(pos[1]) + "." + strconv.Itoa(pos[0]), played})
+			r.Add <- Update{"update", "data.board." + strconv.Itoa(pos[1]) + "." + strconv.Itoa(pos[0]), played}
 		}
 
 		if r.Data.State != gameState {
-			r.Write(Update{"update", "data.state", r.Data.State})
+			r.Add <- Update{"update", "data.state", r.Data.State}
 		}
 
 		if r.Data.CurrentPlayer != curr {
-			r.Write(Update{"update", "data.currentPlayer", r.Data.CurrentPlayer})
+			r.Add <- Update{"update", "data.currentPlayer", r.Data.CurrentPlayer}
 		}
 
+		break
+	case "config":
+		if u.Token != r.Author.Token {
+			log.Println("Err:NotAuthor:" + u.Token)
+			break
+		}
+
+		var config configUpdate
+		err := json.Unmarshal([]byte(message.Content), &config)
+		if err != nil {
+			log.Println("Err:Config:", err)
+		}
+
+		if config.Size >= 2 && config.Size <= 9 {
+			r.Data.Size = config.Size
+		}
+
+		if config.Length >= 2 && config.Length <= 5 {
+			r.Data.Length = config.Length
+		}
+
+		if r.Data.Size < r.Data.Length {
+			r.Data.Size = r.Data.Length
+		}
+
+		r.Data.Init()
+
+		r.Add <- Update{"update", "data.board", r.Data.Board}
+		r.Add <- Update{"update", "data.state", r.Data.State}
+		r.Add <- Update{"update", "data.currentPlayer", r.Data.CurrentPlayer}
 		break
 	case "join":
 		nb, err := strconv.Atoi(message.Content)
@@ -89,21 +120,21 @@ func (r *TicTacToeRoom) HandleResponse(u *Player, message ClientMessage) {
 			break
 		}
 
-		if nb == 1 {
+		if nb == 1 && r.Data.P1 == nil {
 			r.Data.P1 = u
 			log.Println("User:" + u.Token + " joined as p1")
-			r.Write(Update{"update", "data.p1", u})
+			r.Add <- Update{"update", "data.p1", u}
 		}
 
-		if nb == 2 {
+		if nb == 2 && r.Data.P2 == nil {
 			r.Data.P2 = u
 			log.Println("User:" + u.Token + " joined as p2")
-			r.Write(Update{"update", "data.p2", u})
+			r.Add <- Update{"update", "data.p2", u}
 		}
 	case "restart":
-		if r.Data.P1.Token == u.Token || r.Data.P2.Token == u.Token {
+		if (r.Data.P1.Token == u.Token || r.Data.P2.Token == u.Token) && (r.Data.State == "pending" || r.Data.State == "tie") {
 			r.Data.Init()
-			r.Write(Update{"update", "data", r.Data})
+			r.Add <- Update{"update", "data", r.Data}
 		}
 		break
 	case "quit":
