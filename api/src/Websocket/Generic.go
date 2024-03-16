@@ -218,7 +218,9 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 			}
 
 			if message.Type == "message" {
-				room.AddMessage(&u, message.Content)
+				if len(message.Content) > 0 {
+					room.AddMessage(&u, message.Content)
+				}
 				continue
 			}
 
