@@ -79,15 +79,31 @@ func Updater[T any, R RoomI[T]](r R, add chan any) {
 		select {
 		case <-ticker.C:
 			if len(updates) > 0 {
-				fmt.Println("Send:Updates:" + strconv.Itoa(len(updates)))
+				users := r.GetUsers()
+				if len(users) == 0 {
+					updates = []any{}
+					userUpdates = make(map[*Player][]Update)
+					continue
+				}
 
-				for _, u := range r.GetUsers() {
-					userUpdatesConverted := make([]any, len(userUpdates[u]))
-					for i, update := range userUpdates[u] {
-						userUpdatesConverted[i] = update
+				totalUpdatesLength := len(updates)
+				for _, u := range userUpdates {
+					totalUpdatesLength += len(u)
+				}
+
+				fmt.Println("Send:Updates:" + strconv.Itoa(totalUpdatesLength))
+
+				for _, u := range users {
+					localUpdates := make([]any, 0)
+
+					for _, update := range userUpdates[u] {
+						localUpdates = append(localUpdates, update)
 					}
 
-					localUpdates := append(updates, userUpdatesConverted...)
+					for _, update := range updates {
+						localUpdates = append(localUpdates, update)
+					}
+
 					if len(localUpdates) == 1 {
 						_ = u.Write(localUpdates[0])
 					} else {
@@ -147,19 +163,20 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 			room.Update(UserUpdate{&u, Update{"request", "username", nil}})
 		}
 
-		if room.IsAuthor(&u) {
-			room.Update(UserUpdate{&u, Update{"update", "isAuthor", true}})
-		}
-
 		room.Update(UserUpdate{&u, Update{"update", "*", room}})
 		room.Update(UserUpdate{&u, Update{"update", "user", u}})
 		room.Update(Update{"update", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
+
+		if room.IsAuthor(&u) {
+			room.Update(UserUpdate{&u, Update{"update", "isAuthor", true}})
+		}
 
 		defer func() {
 			room.Update(Update{"delete", "users." + strconv.Itoa(room.GetUserIndex(&u)), u})
 			delete(room.GetUsers(), u.Token)
 			room.Quit(&u)
 			log.Println("Del:Player:" + u.Token)
+
 			if len(room.GetUsers()) == 0 {
 				delete(rooms, id)
 				log.Println("Del:Room:" + id)
