@@ -56,8 +56,8 @@ func main() {
 	})
 
 	websockets := []ws.GenericWsI{
-		&ws.MessageWs{},
 		&ws.TicTacToeWs{},
+		&ws.BombermanWs{},
 	}
 
 	for i := range websockets {

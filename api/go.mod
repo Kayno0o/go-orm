@@ -1,6 +1,6 @@
 module go-api-test.kayn.ooo
 
-go 1.21
+go 1.22
 
 require (
 	github.com/gofiber/contrib/websocket v1.3.0

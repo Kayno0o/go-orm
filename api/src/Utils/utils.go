@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"regexp"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	entity "go-api-test.kayn.ooo/src/Entity"
@@ -146,17 +147,56 @@ func MapToArray[T any, U comparable](m map[U]T) []T {
 }
 
 func RandomString(length int) (string, error) {
-	// Create a byte slice to hold the random bytes
 	randomBytes := make([]byte, length)
 
-	// Read random bytes from crypto/rand
 	_, err := rand.Read(randomBytes)
 	if err != nil {
 		return "", err
 	}
 
-	// Encode random bytes to a base64 string
 	randomString := base64.URLEncoding.EncodeToString(randomBytes)
 
 	return randomString, nil
+}
+
+// handler <- false = stop ; handler <- true = reset timer
+// call callback with boolean correponding to immediate (true if startup or reset, false if runtime)
+func SetInterval(interval time.Duration, handler <-chan bool, callback func(bool)) {
+	ticker := time.NewTicker(interval)
+	callback(true)
+
+	for {
+		select {
+		case <-ticker.C:
+			callback(false)
+		case reset := <-handler:
+			if reset {
+				ticker.Stop()
+				ticker = time.NewTicker(interval)
+				callback(true)
+			} else {
+				ticker.Stop()
+				return
+			}
+		}
+	}
+}
+
+func SetTimeout(delay time.Duration, callback func()) {
+	go func() {
+		<-time.After(delay)
+		callback()
+	}()
+}
+
+func RemoveAtIndex[T any](slice *[]T, index int) {
+	*slice = append((*slice)[:index], (*slice)[index+1:]...)
+}
+
+func RemoveFromArray[T any](array *[]*T, entity *T) {
+	for i, a := range *array {
+		if a == entity {
+			RemoveAtIndex(array, i)
+		}
+	}
 }

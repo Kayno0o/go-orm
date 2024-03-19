@@ -160,7 +160,7 @@ func Handle[T any, R RoomI[T]](name string, init func(u *Player) R) {
 		room.AddUser(&u)
 
 		if u.Username == "" {
-			room.Update(UserUpdate{&u, Update{"request", "username", nil}})
+			room.Update(UserUpdate{&u, Update{"request", "user", nil}})
 		}
 
 		room.Update(UserUpdate{&u, Update{"update", "*", room}})
