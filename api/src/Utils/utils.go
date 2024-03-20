@@ -196,7 +196,7 @@ func RemoveAtIndex[T any](slice *[]T, index int) {
 func RemoveFromArray[T any](array *[]*T, entity *T) {
 	for i, a := range *array {
 		if a == entity {
-			RemoveAtIndex(array, i)
+			*array = append((*array)[:i], (*array)[i+1:]...)
 		}
 	}
 }
