@@ -1,13 +1,14 @@
 package router
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	entity "go-api-test.kayn.ooo/src/Entity"
 	trait "go-api-test.kayn.ooo/src/Entity/Trait"
 	middleware "go-api-test.kayn.ooo/src/Middleware"
 	repository "go-api-test.kayn.ooo/src/Repository"
 	utils "go-api-test.kayn.ooo/src/Utils"
-	"strconv"
 )
 
 var FiberApp *fiber.App

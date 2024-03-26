@@ -16,7 +16,7 @@ func Authenticate(c *fiber.Ctx) error {
 		tokenString = c.Cookies("token")
 	}
 
-	if tokenString == "" {
+	if tokenString == "" || len(tokenString) < 10 {
 		return c.Next()
 	}
 

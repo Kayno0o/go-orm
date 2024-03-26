@@ -12,7 +12,7 @@ type User struct {
 
 	Username string   `bun:",notnull" json:"username"`
 	Email    string   `bun:",notnull,unique" json:"email"`
-	Password string   `bun:",notnull" json:"password"`
+	Password string   `bun:",notnull" json:"-"`
 	Roles    []string `bun:",array" json:"roles"`
 }
 

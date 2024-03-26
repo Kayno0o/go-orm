@@ -2,6 +2,7 @@ package router
 
 import (
 	"errors"
+
 	"github.com/gofiber/fiber/v2"
 	entity "go-api-test.kayn.ooo/src/Entity"
 	utils "go-api-test.kayn.ooo/src/Utils"
@@ -17,7 +18,9 @@ func (tr TodolistRouter) RegisterRoutes(r fiber.Router) {
 	RegisterCrud[entity.Todolist, entity.TodolistContext, entity.TodolistEditContext](
 		api,
 		"todolist",
-		CrudParams{},
+		CrudParams{
+			PublicGet: false,
+		},
 		func(c *fiber.Ctx, context entity.TodolistEditContext) (entity.Todolist, error) {
 			todo := entity.Todolist{
 				Checked: false,
@@ -25,7 +28,7 @@ func (tr TodolistRouter) RegisterRoutes(r fiber.Router) {
 			}
 
 			localUser := utils.GetUser(c)
-			if any(localUser) == nil {
+			if localUser == nil {
 				return todo, errors.New("unauthorized")
 			}
 

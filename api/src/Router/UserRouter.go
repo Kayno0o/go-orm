@@ -1,11 +1,12 @@
 package router
 
 import (
-	middleware "go-api-test.kayn.ooo/src/Middleware"
-	utils "go-api-test.kayn.ooo/src/Utils"
 	"os"
 	"strconv"
 	"time"
+
+	middleware "go-api-test.kayn.ooo/src/Middleware"
+	utils "go-api-test.kayn.ooo/src/Utils"
 
 	"github.com/gofiber/fiber/v2"
 	entity "go-api-test.kayn.ooo/src/Entity"
@@ -84,7 +85,7 @@ func (ur UserRouter) Login(c *fiber.Ctx) error {
 func (ur UserRouter) Register(c *fiber.Ctx) error {
 	var form entity.Register
 	if err := c.BodyParser(&form); err != nil {
-		return utils.HTTP400Error(c, err.Error())
+		return utils.HTTP400Error(c, "Error while parsing datas.")
 	}
 
 	var user entity.User
@@ -96,7 +97,7 @@ func (ur UserRouter) Register(c *fiber.Ctx) error {
 
 	_, err := repository.Create(&user)
 	if err != nil {
-		return utils.HTTP500Error(c, err.Error())
+		return utils.HTTP500Error(c, "Error while creating user. Email may already be used.")
 	}
 
 	token, err := security.GenerateToken(&user)

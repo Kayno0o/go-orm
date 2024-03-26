@@ -21,6 +21,9 @@ func main() {
 		&entity.User{},
 		&entity.Todolist{},
 		&entity.Player{},
+		&entity.DofusItem{},
+		&entity.DofusPriceHistory{},
+		&entity.DofusIngredient{},
 	})
 
 	if os.Getenv("ENV") == "dev" {

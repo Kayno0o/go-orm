@@ -3,5 +3,17 @@
   "go.lintFlags": [
     "--fast"
   ],
-  "discord.enabled": true
+  "discord.enabled": true,
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 15432,
+      "driver": "PostgreSQL",
+      "password": "goorm_password",
+      "username": "goorm_user",
+      "database": "goorm_db",
+      "name": "go-orm"
+    }
+  ]
 }

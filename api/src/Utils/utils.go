@@ -117,8 +117,13 @@ func MergeMaps[U comparable, T any](maps ...map[U]T) map[U]T {
 	return mergedMap
 }
 
-func GetUser[T *entity.User](c *fiber.Ctx) T {
-	return c.Locals("user").(T)
+func GetUser(c *fiber.Ctx) *entity.User {
+	user, ok := c.Locals("user").(*entity.User)
+	if !ok {
+		return nil
+	}
+
+	return user
 }
 
 func Stringify(r any) string {

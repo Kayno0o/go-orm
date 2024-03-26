@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,13 +17,10 @@ func firstOrDefault(messages []string, defaultMsg string) string {
 func HTTPError(c *fiber.Ctx, code int, message ...string) error {
 	errorMessage := firstOrDefault(message, "Error "+string(rune(code)))
 	err := c.Status(code).JSON(map[string]string{
-		"Error": errorMessage,
+		"error": errorMessage,
 	})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	return errors.New(errorMessage)
+	log.Println(err)
+	return err
 }
 
 func HTTP400Error(c *fiber.Ctx, message ...string) error {
