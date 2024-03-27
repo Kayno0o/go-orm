@@ -6,9 +6,11 @@ import (
 )
 
 var RoleHierarchy = map[string][]string{
-	"ROLE_USER":        {},
-	"ROLE_ADMIN":       {"ROLE_USER"},
-	"ROLE_SUPER_ADMIN": {"ROLE_ADMIN"},
+	"ROLE_USER":         {},
+	"ROLE_DOFUS_VIEWER": {"ROLE_USER"},
+	"ROLE_DOFUS_EDITOR": {"ROLE_DOFUS_VIEWER"},
+	"ROLE_ADMIN":        {"ROLE_USER", "ROLE_DOFUS_EDITOR"},
+	"ROLE_SUPER_ADMIN":  {"ROLE_ADMIN"},
 }
 
 func IsGranted(roles []string) func(*fiber.Ctx) error {
