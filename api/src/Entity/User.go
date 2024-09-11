@@ -21,6 +21,13 @@ type UserContext struct {
 	Username string `json:"username"`
 }
 
+type AdminUserContext struct {
+	Id       uint     `json:"id"`
+	Username string   `json:"username"`
+	Email    string   `json:"email"`
+	Roles    []string `json:"roles"`
+}
+
 type Login struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

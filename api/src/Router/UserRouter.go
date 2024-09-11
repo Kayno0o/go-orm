@@ -31,10 +31,18 @@ func (ur UserRouter) RegisterRoutes(r fiber.Router) {
 	)
 
 	// ADMIN
-	api.Get(
+	adminRouter := api.Group("admin", middleware.IsGranted([]string{"ROLE_ADMIN"}))
+	adminRouter.Get(
 		"/users/fixture/:amount",
-		middleware.IsGranted([]string{"ROLE_ADMIN"}),
 		ur.Fixture,
+	)
+	adminRouter.Get(
+		"/users",
+		GetAll[entity.User, entity.AdminUserContext](Params{VerifyOwner: false, AllowPagination: true}),
+	)
+	adminRouter.Get(
+		"/users/count",
+		CountAll[entity.User](Params{VerifyOwner: false, AllowPagination: false}),
 	)
 
 	// USER

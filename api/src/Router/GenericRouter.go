@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -17,8 +18,8 @@ type GenericRouterI interface {
 }
 
 type Params struct {
-	VerifyOwner bool
-	Pagination  bool
+	VerifyOwner     bool
+	AllowPagination bool
 }
 
 type CrudParams struct {
@@ -39,7 +40,7 @@ func GetQuery[C trait.IdentifiableTraitI](c *fiber.Ctx, params Params) map[strin
 		}
 	}
 
-	if params.Pagination {
+	if params.AllowPagination {
 		query = utils.MergeMaps(query, GetPagination(c))
 	}
 
@@ -99,6 +100,7 @@ func GetAll[E trait.IdentifiableTraitI, C interface{}](
 			return utils.HTTP404Error(c)
 		}
 
+		fmt.Println(query)
 		entities, err := repository.FindAllBy[E](query)
 		if err != nil {
 			return utils.HTTP500Error(c, err.Error())

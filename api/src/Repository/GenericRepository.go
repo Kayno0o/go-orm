@@ -63,21 +63,15 @@ func Init(entities []interface{}) {
 
 func applyParams(model *bun.SelectQuery, params map[string]interface{}) *bun.SelectQuery {
 	for key, value := range params {
-		if key == "limit" || key == "offset" {
-			limit, boolErr := value.(string)
-			if !boolErr {
-				continue
+		if key == "offset" {
+			if offset, ok := params["offset"].(int); ok {
+				model.Offset(offset)
 			}
-
-			limitInt, err := strconv.Atoi(limit)
-			if err != nil {
-				continue
-			}
-
-			if key == "offset" {
-				model.Offset(limitInt)
-			} else if key == "limit" {
-				model.Limit(limitInt)
+			continue
+		}
+		if key == "limit" {
+			if limit, ok := params["limit"].(int); ok {
+				model.Limit(limit)
 			}
 			continue
 		}
@@ -137,6 +131,7 @@ func FindAllBy[E trait.IdentifiableTraitI](params map[string]interface{}) ([]E, 
 	model := DB.NewSelect().Model(&entities)
 	model = applyParams(model, params)
 	err := model.OrderExpr("id ASC").Scan(Ctx)
+
 	return entities, err
 }
 
