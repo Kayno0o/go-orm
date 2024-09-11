@@ -2,7 +2,7 @@ FROM golang:1.22-alpine
 
 WORKDIR /app
 
-RUN go install github.com/cosmtrek/air@latest
+RUN install github.com/air-verse/air@latest
 
 COPY go.mod go.sum ./
 RUN go mod download
