@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -100,7 +99,6 @@ func GetAll[E trait.IdentifiableTraitI, C interface{}](
 			return utils.HTTP404Error(c)
 		}
 
-		fmt.Println(query)
 		entities, err := repository.FindAllBy[E](query)
 		if err != nil {
 			return utils.HTTP500Error(c, err.Error())
