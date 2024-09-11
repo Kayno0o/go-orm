@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	entity "go-api-test.kayn.ooo/src/Entity"
 	trait "go-api-test.kayn.ooo/src/Entity/Trait"
-	middleware "go-api-test.kayn.ooo/src/Middleware"
 	repository "go-api-test.kayn.ooo/src/Repository"
 	utils "go-api-test.kayn.ooo/src/Utils"
 )
@@ -23,8 +22,6 @@ type Params struct {
 }
 
 type CrudParams struct {
-	PublicGet     bool
-	PublicContext interface{}
 }
 
 func GetQuery[C trait.IdentifiableTraitI](c *fiber.Ctx, params Params) map[string]interface{} {
@@ -32,7 +29,7 @@ func GetQuery[C trait.IdentifiableTraitI](c *fiber.Ctx, params Params) map[strin
 
 	if params.VerifyOwner {
 		uid := utils.GetUserId(c)
-		if any(uid) == nil {
+		if uid == 0 {
 			return nil
 		}
 
@@ -180,7 +177,7 @@ func Post[E trait.IdentifiableTraitI, C interface{}, OC interface{}](
 		}
 
 		uid := utils.GetUserId(c)
-		if any(uid) == nil {
+		if uid == 0 {
 			return utils.HTTP401Error(c)
 		}
 
@@ -227,63 +224,4 @@ func Delete[E trait.IdentifiableTraitI](
 		}
 		return nil
 	}
-}
-
-func RegisterCrud[E trait.IdentifiableTraitI, C interface{}, UC interface{}](
-	r fiber.Router,
-	name string,
-	params CrudParams,
-	createHandler func(*fiber.Ctx, UC) (E, error),
-) {
-	adminParams := Params{VerifyOwner: false, Pagination: true}
-	userParams := Params{VerifyOwner: true, Pagination: true}
-	entityParams := Params{VerifyOwner: !params.PublicGet, Pagination: true}
-
-	r.Group(
-		"/admin/"+name,
-		middleware.IsGranted([]string{"ROLE_ADMIN"}),
-	).Post(
-		"/",
-		Post[E, UC, C](createHandler),
-	).Put(
-		"/:id",
-		Put[E, E, C](adminParams),
-	).Delete(
-		"/:id",
-		Delete[E](adminParams),
-	).Get(
-		"/:id",
-		GetOne[E, C](adminParams),
-	).Get(
-		"/",
-		GetAll[E, C](adminParams),
-	).Get(
-		"/count",
-		CountAll[E](adminParams),
-	)
-
-	r.Group(
-		name,
-		middleware.IsGranted([]string{"ROLE_USER"}),
-	).Post(
-		"/",
-		Post[E, UC, C](createHandler),
-	).Put(
-		"/:id",
-		Put[E, UC, C](userParams),
-	).Delete(
-		"/:id",
-		Delete[E](userParams),
-	)
-
-	r.Group(name).Get(
-		"/:id",
-		GetOne[E, C](entityParams),
-	).Get(
-		"/",
-		GetAll[E, C](entityParams),
-	).Get(
-		"/count",
-		CountAll[E](entityParams),
-	)
 }
